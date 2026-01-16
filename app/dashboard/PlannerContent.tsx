@@ -107,21 +107,23 @@ export function PlannerContent({
                   </span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
-                <SheetHeader>
+              <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">
+                <SheetHeader className="flex-shrink-0">
                   <SheetTitle>Orçamento e Categorias</SheetTitle>
                 </SheetHeader>
-                <div className="mt-4 space-y-4 overflow-y-auto pb-8">
-                  <BudgetDisplay summary={budgetSummary} />
-                  <CategoryList
-                    categories={categoriesWithItems}
-                    selectedCategoryId={filters.categoryId}
-                    onSelectCategory={(id) => {
-                      handleCategorySelect(id)
-                    }}
-                  />
-                  <div className="pt-4">
-                    <TagManager tags={tags} />
+                <div className="flex-1 mt-4 overflow-y-auto overscroll-contain pb-safe">
+                  <div className="space-y-4 pb-8">
+                    <BudgetDisplay summary={budgetSummary} />
+                    <CategoryList
+                      categories={categoriesWithItems}
+                      selectedCategoryId={filters.categoryId}
+                      onSelectCategory={(id) => {
+                        handleCategorySelect(id)
+                      }}
+                    />
+                    <div className="pt-4">
+                      <TagManager tags={tags} />
+                    </div>
                   </div>
                 </div>
               </SheetContent>
@@ -191,17 +193,19 @@ export function PlannerContent({
               <span className="sr-only">Adicionar item</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl">
-            <SheetHeader>
+          <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl flex flex-col">
+            <SheetHeader className="flex-shrink-0">
               <SheetTitle>Adicionar Novo Item</SheetTitle>
             </SheetHeader>
-            <div className="mt-4 overflow-y-auto pb-8">
-              <ItemForm
-                categories={categories}
-                tags={tags}
-                onSuccess={() => setShowAddForm(false)}
-                onCancel={() => setShowAddForm(false)}
-              />
+            <div className="flex-1 mt-4 overflow-y-auto overscroll-contain pb-safe">
+              <div className="pb-8">
+                <ItemForm
+                  categories={categories}
+                  tags={tags}
+                  onSuccess={() => setShowAddForm(false)}
+                  onCancel={() => setShowAddForm(false)}
+                />
+              </div>
             </div>
           </SheetContent>
         </Sheet>

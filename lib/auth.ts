@@ -1,19 +1,21 @@
 /**
  * Authentication Utilities
- *
+ * 
  * Handles password hashing, session token creation/verification,
  * and cookie management for authentication.
  */
 
-import { SignJWT, jwtVerify } from "jose"
-import bcrypt from "bcryptjs"
-import { cookies } from "next/headers"
-import { sql } from "./db"
+import { SignJWT, jwtVerify } from 'jose'
+import bcrypt from 'bcryptjs'
+import { cookies } from 'next/headers'
+import { prisma } from './prisma'
 
 // Secret key for JWT signing (should be in environment variables)
-const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key-change-this-in-production")
+const SECRET_KEY = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
+)
 
-const SESSION_COOKIE_NAME = "session"
+const SESSION_COOKIE_NAME = 'session'
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
 
 /**
@@ -26,7 +28,10 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verify a password against a hash
  */
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hashedPassword: string
+): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword)
 }
 
@@ -35,9 +40,9 @@ export async function verifyPassword(password: string, hashedPassword: string): 
  */
 export async function createSession(userId: string): Promise<string> {
   const token = await new SignJWT({ userId })
-    .setProtectedHeader({ alg: "HS256" })
+    .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime('7d')
     .sign(SECRET_KEY)
 
   return token
@@ -62,10 +67,10 @@ export async function setSessionCookie(token: string): Promise<void> {
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     maxAge: SESSION_DURATION / 1000,
-    path: "/",
+    path: '/',
   })
 }
 
@@ -92,28 +97,30 @@ export async function deleteSessionCookie(): Promise<void> {
  */
 export async function getCurrentUser() {
   const token = await getSessionToken()
-
+  
   if (!token) {
     return null
   }
 
   const session = await verifySession(token)
-
+  
   if (!session) {
     return null
   }
 
   try {
-    const users = await sql`
-      SELECT id, email, "createdAt"
-      FROM "User"
-      WHERE id = ${session.userId}
-      LIMIT 1
-    `
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+      },
+    })
 
-    return users[0] || null
+    return user
   } catch (error) {
-    console.error("Failed to fetch current user:", error)
+    console.error('Failed to fetch current user:', error)
     return null
   }
 }
@@ -123,9 +130,9 @@ export async function getCurrentUser() {
  */
 export async function requireAuth() {
   const user = await getCurrentUser()
-
+  
   if (!user) {
-    throw new Error("Unauthorized")
+    throw new Error('Unauthorized')
   }
 
   return user

@@ -1,15 +1,15 @@
-"use server"
+'use server'
 
 /**
  * Server Actions for Tag Management
- *
+ * 
  * Tags are flexible labels for items (urgent, sale, gift, etc.)
  */
 
-import { revalidatePath } from "next/cache"
-import { sql, generateId } from "@/lib/db"
-import { getCurrentUserId, requireAuth } from "@/lib/auth"
-import type { Tag } from "@/lib/types"
+import { revalidatePath } from 'next/cache'
+import { prisma } from '@/lib/prisma'
+import { getCurrentUserId, requireAuth } from '@/lib/auth'
+import type { Tag } from '@/lib/types'
 
 // Re-export type for convenience
 export type { Tag }
@@ -26,20 +26,19 @@ export async function getTags(): Promise<Tag[]> {
   if (!userId) return []
 
   try {
-    const tags = await sql`
-      SELECT t.*, 
-        (SELECT COUNT(*) FROM "ItemTag" WHERE "tagId" = t.id) as "_count_items"
-      FROM "Tag" t
-      WHERE t."userId" = ${userId}
-      ORDER BY t.name ASC
-    `
+    const tags = await prisma.tag.findMany({
+      where: { userId },
+      include: {
+        _count: {
+          select: { items: true }
+        }
+      },
+      orderBy: { name: 'asc' }
+    })
 
-    return tags.map((t: any) => ({
-      ...t,
-      _count: { items: Number(t._count_items) },
-    })) as Tag[]
+    return tags as Tag[]
   } catch (error) {
-    console.error("Failed to fetch tags:", error)
+    console.error('Failed to fetch tags:', error)
     return []
   }
 }
@@ -49,42 +48,33 @@ export async function getTags(): Promise<Tag[]> {
  */
 export async function createTag(
   name: string,
-  color?: string,
+  color?: string
 ): Promise<{ success: boolean; error?: string; tag?: Tag }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: "Not authenticated" }
+    if (!userId) return { success: false, error: 'Not authenticated' }
 
     if (!name.trim()) {
-      return { success: false, error: "Tag name is required" }
+      return { success: false, error: 'Tag name is required' }
     }
 
-    const id = generateId()
-    const now = new Date()
-
-    await sql`
-      INSERT INTO "Tag" (id, name, color, "userId", "createdAt")
-      VALUES (${id}, ${name.trim().toLowerCase()}, ${color || null}, ${userId}, ${now})
-    `
-
-    revalidatePath("/dashboard")
-    return {
-      success: true,
-      tag: {
-        id,
+    const tag = await prisma.tag.create({
+      data: {
         name: name.trim().toLowerCase(),
         color: color || null,
         userId,
-        createdAt: now,
-      } as Tag,
-    }
+      }
+    })
+
+    revalidatePath('/dashboard')
+    return { success: true, tag: tag as Tag }
   } catch (error: any) {
-    if (error.code === "23505") {
-      return { success: false, error: "Tag already exists" }
+    if (error.code === 'P2002') {
+      return { success: false, error: 'Tag already exists' }
     }
-    console.error("Failed to create tag:", error)
-    return { success: false, error: "Failed to create tag" }
+    console.error('Failed to create tag:', error)
+    return { success: false, error: 'Failed to create tag' }
   }
 }
 
@@ -93,36 +83,36 @@ export async function createTag(
  */
 export async function updateTag(
   id: string,
-  data: { name?: string; color?: string | null },
+  data: { name?: string; color?: string | null }
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: "Not authenticated" }
+    if (!userId) return { success: false, error: 'Not authenticated' }
 
-    const existing = await sql`
-      SELECT id FROM "Tag" WHERE id = ${id} AND "userId" = ${userId} LIMIT 1
-    `
-    if (existing.length === 0) {
-      return { success: false, error: "Tag not found" }
+    const existing = await prisma.tag.findFirst({
+      where: { id, userId }
+    })
+    if (!existing) {
+      return { success: false, error: 'Tag not found' }
     }
 
-    await sql`
-      UPDATE "Tag"
-      SET 
-        name = COALESCE(${data.name?.trim().toLowerCase()}, name),
-        color = COALESCE(${data.color}, color)
-      WHERE id = ${id}
-    `
+    await prisma.tag.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name.trim().toLowerCase() }),
+        ...(data.color !== undefined && { color: data.color }),
+      }
+    })
 
-    revalidatePath("/dashboard")
+    revalidatePath('/dashboard')
     return { success: true }
   } catch (error: any) {
-    if (error.code === "23505") {
-      return { success: false, error: "Tag name already exists" }
+    if (error.code === 'P2002') {
+      return { success: false, error: 'Tag name already exists' }
     }
-    console.error("Failed to update tag:", error)
-    return { success: false, error: "Failed to update tag" }
+    console.error('Failed to update tag:', error)
+    return { success: false, error: 'Failed to update tag' }
   }
 }
 
@@ -133,76 +123,82 @@ export async function deleteTag(id: string): Promise<{ success: boolean; error?:
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: "Not authenticated" }
+    if (!userId) return { success: false, error: 'Not authenticated' }
 
-    const existing = await sql`
-      SELECT id FROM "Tag" WHERE id = ${id} AND "userId" = ${userId} LIMIT 1
-    `
-    if (existing.length === 0) {
-      return { success: false, error: "Tag not found" }
+    const existing = await prisma.tag.findFirst({
+      where: { id, userId }
+    })
+    if (!existing) {
+      return { success: false, error: 'Tag not found' }
     }
 
-    await sql`DELETE FROM "Tag" WHERE id = ${id}`
+    await prisma.tag.delete({ where: { id } })
 
-    revalidatePath("/dashboard")
+    revalidatePath('/dashboard')
     return { success: true }
   } catch (error) {
-    console.error("Failed to delete tag:", error)
-    return { success: false, error: "Failed to delete tag" }
+    console.error('Failed to delete tag:', error)
+    return { success: false, error: 'Failed to delete tag' }
   }
 }
 
 /**
  * Add tag to item
  */
-export async function addTagToItem(itemId: string, tagId: string): Promise<{ success: boolean; error?: string }> {
+export async function addTagToItem(
+  itemId: string,
+  tagId: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: "Not authenticated" }
+    if (!userId) return { success: false, error: 'Not authenticated' }
 
     // Verify item and tag ownership
-    const [items, tags] = await Promise.all([
-      sql`SELECT id FROM "Item" WHERE id = ${itemId} AND "userId" = ${userId} LIMIT 1`,
-      sql`SELECT id FROM "Tag" WHERE id = ${tagId} AND "userId" = ${userId} LIMIT 1`,
+    const [item, tag] = await Promise.all([
+      prisma.item.findFirst({ where: { id: itemId, userId } }),
+      prisma.tag.findFirst({ where: { id: tagId, userId } })
     ])
 
-    if (items.length === 0 || tags.length === 0) {
-      return { success: false, error: "Item or tag not found" }
+    if (!item || !tag) {
+      return { success: false, error: 'Item or tag not found' }
     }
 
-    const id = generateId()
-    await sql`
-      INSERT INTO "ItemTag" (id, "itemId", "tagId", "createdAt")
-      VALUES (${id}, ${itemId}, ${tagId}, NOW())
-      ON CONFLICT ("itemId", "tagId") DO NOTHING
-    `
+    await prisma.itemTag.create({
+      data: { itemId, tagId }
+    })
 
-    revalidatePath("/dashboard")
+    revalidatePath('/dashboard')
     return { success: true }
-  } catch (error) {
-    console.error("Failed to add tag to item:", error)
-    return { success: false, error: "Failed to add tag" }
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return { success: true } // Already exists, treat as success
+    }
+    console.error('Failed to add tag to item:', error)
+    return { success: false, error: 'Failed to add tag' }
   }
 }
 
 /**
  * Remove tag from item
  */
-export async function removeTagFromItem(itemId: string, tagId: string): Promise<{ success: boolean; error?: string }> {
+export async function removeTagFromItem(
+  itemId: string,
+  tagId: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: "Not authenticated" }
+    if (!userId) return { success: false, error: 'Not authenticated' }
 
-    await sql`
-      DELETE FROM "ItemTag" WHERE "itemId" = ${itemId} AND "tagId" = ${tagId}
-    `
+    await prisma.itemTag.deleteMany({
+      where: { itemId, tagId }
+    })
 
-    revalidatePath("/dashboard")
+    revalidatePath('/dashboard')
     return { success: true }
   } catch (error) {
-    console.error("Failed to remove tag from item:", error)
-    return { success: false, error: "Failed to remove tag" }
+    console.error('Failed to remove tag from item:', error)
+    return { success: false, error: 'Failed to remove tag' }
   }
 }

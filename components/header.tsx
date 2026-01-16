@@ -24,27 +24,29 @@ export function Header() {
               href="#features"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Features
+              Funcionalidades
             </Link>
             <Link
               href="#how-it-works"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              How it works
+              Como funciona
             </Link>
             <Link
               href="#testimonials"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Testimonials
+              Depoimentos
             </Link>
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Log in
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/login">Entrar</Link>
             </Button>
-            <Button size="sm">Get Started</Button>
+            <Button size="sm" asChild>
+              <Link href="/register">Começar</Link>
+            </Button>
           </div>
 
           <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
@@ -56,19 +58,21 @@ export function Header() {
           <div className="md:hidden py-4 border-t border-border">
             <nav className="flex flex-col gap-4">
               <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Features
+                Funcionalidades
               </Link>
               <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                How it works
+                Como funciona
               </Link>
               <Link href="#testimonials" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Testimonials
+                Depoimentos
               </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                <Button variant="ghost" size="sm" className="justify-start">
-                  Log in
+                <Button variant="ghost" size="sm" className="justify-start" asChild>
+                  <Link href="/login">Entrar</Link>
                 </Button>
-                <Button size="sm">Get Started</Button>
+                <Button size="sm" asChild>
+                  <Link href="/register">Começar</Link>
+                </Button>
               </div>
             </nav>
           </div>

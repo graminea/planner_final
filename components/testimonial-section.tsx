@@ -3,21 +3,21 @@ import Image from "next/image"
 
 const testimonials = [
   {
-    quote: "We saved over $800 on our move-in purchases just by comparing prices. This app is a game-changer!",
-    author: "Sarah & Mike",
-    role: "Just moved into their first apartment",
+    quote: "Economizamos mais de R$800 nas compras da mudança só comparando preços. Este app é revolucionário!",
+    author: "Sara & Miguel",
+    role: "Recém-mudados para o primeiro apartamento",
     avatar: "/happy-young-couple-portrait-smiling.jpg",
   },
   {
-    quote: "No more 'I thought you were getting that!' moments. We're finally on the same page.",
-    author: "Jordan & Alex",
-    role: "Engaged, moving in together",
+    quote: "Acabaram os momentos de 'achei que você ia comprar isso!'. Finalmente estamos na mesma página.",
+    author: "Júlio & Ana",
+    role: "Noivos, indo morar juntos",
     avatar: "/diverse-couple-portrait-warm-lighting.jpg",
   },
   {
-    quote: "The price tracking feature helped us wait for the perfect deal on our dream couch.",
-    author: "Emma & Chris",
-    role: "Homeowners for 6 months",
+    quote: "O rastreamento de preços nos ajudou a esperar a oferta perfeita para nosso sofá dos sonhos.",
+    author: "Ema & Cristiano",
+    role: "Donos de casa há 6 meses",
     avatar: "/couple-in-their-30s-portrait-professional.jpg",
   },
 ]
@@ -28,9 +28,9 @@ export function TestimonialSection() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4 text-balance">
-            Loved by couples everywhere
+            Amado por casais em todo lugar
           </h2>
-          <p className="text-lg text-muted-foreground">See what other couples are saying about NestList.</p>
+          <p className="text-lg text-muted-foreground">Veja o que outros casais estão dizendo sobre o NestList.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">

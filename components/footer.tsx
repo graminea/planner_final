@@ -2,9 +2,9 @@ import Link from "next/link"
 import { Home } from "lucide-react"
 
 const footerLinks = {
-  Product: ["Features", "Pricing", "FAQ", "Roadmap"],
-  Company: ["About", "Blog", "Careers", "Contact"],
-  Legal: ["Privacy", "Terms", "Cookie Policy"],
+  Produto: ["Funcionalidades", "Preços", "FAQ", "Roadmap"],
+  Empresa: ["Sobre", "Blog", "Carreiras", "Contato"],
+  Legal: ["Privacidade", "Termos", "Política de Cookies"],
 }
 
 export function Footer() {
@@ -20,8 +20,8 @@ export function Footer() {
               <span className="text-xl font-semibold tracking-tight">NestList</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm mb-6">
-              The household purchase tracker for couples. Plan your home together, save money, and never double-buy
-              again.
+              O rastreador de compras de casa para casais. Planeje sua casa juntos, economize dinheiro e nunca compre em
+              duplicata.
             </p>
           </div>
 
@@ -42,8 +42,8 @@ export function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} NestList. All rights reserved.</p>
-          <p className="text-sm text-muted-foreground">Made with ❤️ for couples everywhere</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} NestList. Todos os direitos reservados.</p>
+          <p className="text-sm text-muted-foreground">Feito com amor para casais em todo lugar</p>
         </div>
       </div>
     </footer>

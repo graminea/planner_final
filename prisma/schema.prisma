@@ -1,0 +1,201 @@
+// This is your Prisma schema file for NeonDB
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER MODEL
+// Scaffolded for multi-user support
+// ============================================================================
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  password  String?  // Hashed with bcrypt
+  createdAt DateTime @default(now())
+  
+  // Relations
+  items       Item[]
+  categories  Category[]
+  tags        Tag[]
+  suggestions ItemSuggestion[]
+  budgetSettings BudgetSettings?
+  
+  @@index([email])
+}
+
+// ============================================================================
+// CATEGORY MODEL
+// Groups items into logical categories (e.g., Kitchen, Bedroom, Electronics)
+// ============================================================================
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String?  // Placeholder for icon identifier
+  isDefault Boolean  @default(false) // System-created categories
+  order     Int      @default(0) // Display order
+  budget    Decimal? @db.Decimal(10, 2) // Category-level budget
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  items     Item[]
+  
+  @@unique([userId, name]) // Unique category names per user
+  @@index([userId])
+  @@index([order])
+}
+
+// ============================================================================
+// TAG MODEL
+// Flexible labels for items (e.g., "urgent", "gift", "sale")
+// ============================================================================
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  color     String?  // Optional color for v0 redesign
+  createdAt DateTime @default(now())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  items     ItemTag[]
+  
+  @@unique([userId, name]) // Unique tag names per user
+  @@index([userId])
+}
+
+// ============================================================================
+// ITEM MODEL
+// Core entity representing a household item to purchase
+// ============================================================================
+model Item {
+  id           String   @id @default(cuid())
+  name         String
+  notes        String?  @db.Text
+  priority     Int      @default(2) // 1=low, 2=medium, 3=high
+  plannedPrice Decimal? @db.Decimal(10, 2) // Expected price
+  boughtPrice  Decimal? @db.Decimal(10, 2) // Actual price paid
+  isBought     Boolean  @default(false) @map("checked") // Maps to existing "checked" column
+  boughtAt     DateTime? // When item was purchased
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  tags       ItemTag[]
+  links      ItemLink[]
+  
+  @@index([userId])
+  @@index([categoryId])
+  @@index([isBought])
+  @@index([priority])
+}
+
+// ============================================================================
+// ITEM TAG (Join Table)
+// Many-to-many relationship between Items and Tags
+// ============================================================================
+model ItemTag {
+  id        String   @id @default(cuid())
+  itemId    String
+  tagId     String
+  createdAt DateTime @default(now())
+  
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@unique([itemId, tagId])
+  @@index([itemId])
+  @@index([tagId])
+}
+
+// ============================================================================
+// ITEM LINK MODEL
+// Multiple purchase links per item (replaces old Option model)
+// ============================================================================
+model ItemLink {
+  id         String   @id @default(cuid())
+  url        String
+  store      String   // Store name (Amazon, IKEA, etc.)
+  price      Decimal  @db.Decimal(10, 2)
+  isSelected Boolean  @default(false) // User's preferred option
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  itemId     String
+  item       Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  @@index([itemId])
+  @@index([isSelected])
+}
+
+// ============================================================================
+// ITEM SUGGESTION MODEL
+// Catalog of common household items for autocomplete
+// ============================================================================
+model ItemSuggestion {
+  id           String   @id @default(cuid())
+  name         String
+  categoryName String?  // Suggested category
+  icon         String?  // Icon placeholder
+  isSystem     Boolean  @default(false) // System-seeded vs user-created
+  usageCount   Int      @default(0) // Track popularity
+  createdAt    DateTime @default(now())
+  
+  userId       String?  // Null for system suggestions
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([name])
+  @@index([isSystem])
+}
+
+// ============================================================================
+// BUDGET SETTINGS MODEL
+// Global budget configuration per user
+// ============================================================================
+model BudgetSettings {
+  id           String   @id @default(cuid())
+  totalBudget  Decimal  @db.Decimal(10, 2)
+  currency     String   @default("USD")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================================
+// LEGACY: Keep Option model for migration (can be removed after data migration)
+// ============================================================================
+model Option {
+  id           String   @id @default(cuid())
+  store        String
+  url          String?
+  currentPrice Decimal? @db.Decimal(10, 2)
+  desiredPrice Decimal? @db.Decimal(10, 2)
+  minPrice     Decimal? @db.Decimal(10, 2)
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  itemId       String
+  
+  @@index([itemId])
+}

@@ -3,33 +3,33 @@ import { CheckCircle, DollarSign, LinkIcon, MessageSquare, ShoppingCart, Target 
 const features = [
   {
     icon: CheckCircle,
-    title: "Track Purchase Status",
-    description: "Mark items as needed, in-progress, or purchased. See your progress at a glance.",
+    title: "Acompanhe Status de Compra",
+    description: "Marque itens como necessários, em andamento ou comprados. Veja seu progresso rapidamente.",
   },
   {
     icon: DollarSign,
-    title: "Compare Prices",
-    description: "Add multiple purchase options per item and find the best deal across stores.",
+    title: "Compare Preços",
+    description: "Adicione múltiplas opções de compra por item e encontre a melhor oferta entre lojas.",
   },
   {
     icon: MessageSquare,
-    title: "Add Notes",
-    description: "Leave notes for yourself or your partner about specific items or options.",
+    title: "Adicione Notas",
+    description: "Deixe notas para você ou seu parceiro sobre itens ou opções específicas.",
   },
   {
     icon: Target,
-    title: "Set Price Targets",
-    description: "Track current, desired, and minimum prices to never overpay again.",
+    title: "Defina Metas de Preço",
+    description: "Acompanhe preços atuais, desejados e mínimos para nunca pagar demais.",
   },
   {
     icon: LinkIcon,
-    title: "Store Links",
-    description: "Save direct URLs to products for quick access when you're ready to buy.",
+    title: "Links de Lojas",
+    description: "Salve URLs diretos dos produtos para acesso rápido quando estiver pronto para comprar.",
   },
   {
     icon: ShoppingCart,
-    title: "Responsive Design",
-    description: "Use it on your phone while shopping or on desktop for detailed planning.",
+    title: "Design Responsivo",
+    description: "Use no celular enquanto faz compras ou no computador para planejamento detalhado.",
   },
 ]
 
@@ -39,10 +39,10 @@ export function FeaturesSection() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4 text-balance">
-            Everything you need to furnish your home
+            Tudo que você precisa para mobiliar sua casa
           </h2>
           <p className="text-lg text-muted-foreground">
-            From tracking what you need to finding the best prices, NestList has you covered.
+            De acompanhar o que você precisa até encontrar os melhores preços, o NestList tem você coberto.
           </p>
         </div>
 

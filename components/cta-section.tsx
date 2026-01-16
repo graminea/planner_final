@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 
@@ -9,18 +10,20 @@ export function CTASection() {
           <div className="absolute inset-0 bg-[url('/abstract-warm-geometric-pattern-subtle.jpg')] opacity-10" />
           <div className="relative z-10 max-w-2xl mx-auto space-y-6">
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary-foreground text-balance">
-              Ready to start building your home together?
+              Pronto para começar a construir sua casa juntos?
             </h2>
             <p className="text-lg text-primary-foreground/80">
-              Join thousands of couples who are making their move-in experience smoother and more affordable.
+              Junte-se a milhares de casais que estão tornando sua experiência de mudança mais tranquila e econômica.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Button size="lg" variant="secondary" className="gap-2">
-                Get started for free
-                <ArrowRight className="h-4 w-4" />
+              <Button size="lg" variant="secondary" className="gap-2" asChild>
+                <Link href="/register">
+                  Comece grátis
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
             </div>
-            <p className="text-sm text-primary-foreground/60">No credit card required • Free forever for basic use</p>
+            <p className="text-sm text-primary-foreground/60">Sem cartão de crédito • Grátis para sempre no uso básico</p>
           </div>
         </div>
       </div>

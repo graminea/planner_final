@@ -12,7 +12,6 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUserId, requireAuth } from '@/lib/auth'
 import { seedDefaultCategories } from './categories'
 import { seedSystemSuggestions } from './suggestions'
-import { DEFAULT_CATEGORIES, DEFAULT_SUGGESTIONS } from '@/lib/types'
 
 // Mapping English -> Portuguese for migration
 const CATEGORY_TRANSLATION: Record<string, string> = {
@@ -139,8 +138,10 @@ export async function isUserInitialized(): Promise<boolean> {
     const userId = await getCurrentUserId()
     if (!userId) return false
 
-    const categoryCount = await prisma.category.count({ where: { userId } })
-    return categoryCount > 0
+    const count = await prisma.category.count({
+      where: { userId }
+    })
+    return count > 0
   } catch (error) {
     console.error('Failed to check initialization:', error)
     return false
@@ -151,7 +152,7 @@ export async function isUserInitialized(): Promise<boolean> {
  * Migrate existing English data to Portuguese
  * Run this once to update existing users' data
  */
-export async function migrateToPortuguese(): Promise<{ 
+export async function migrateToPortuguese(): Promise<{
   success: boolean
   error?: string
   categoriesUpdated?: number
@@ -168,7 +169,11 @@ export async function migrateToPortuguese(): Promise<{
     let itemsUpdated = 0
 
     // 1. Update user's categories
-    const userCategories = await prisma.category.findMany({ where: { userId } })
+    const userCategories = await prisma.category.findMany({
+      where: { userId },
+      select: { id: true, name: true }
+    })
+    
     for (const cat of userCategories) {
       const newName = CATEGORY_TRANSLATION[cat.name]
       if (newName && newName !== cat.name) {
@@ -181,11 +186,15 @@ export async function migrateToPortuguese(): Promise<{
     }
 
     // 2. Update system suggestions (global)
-    const suggestions = await prisma.itemSuggestion.findMany({ where: { isSystem: true } })
+    const suggestions = await prisma.itemSuggestion.findMany({
+      where: { isSystem: true },
+      select: { id: true, name: true, categoryName: true }
+    })
+    
     for (const sug of suggestions) {
       const newName = SUGGESTION_TRANSLATION[sug.name]
       const newCategory = sug.categoryName ? CATEGORY_TRANSLATION[sug.categoryName] : null
-      
+
       if (newName || newCategory) {
         await prisma.itemSuggestion.update({
           where: { id: sug.id },
@@ -199,7 +208,11 @@ export async function migrateToPortuguese(): Promise<{
     }
 
     // 3. Update user's items that have English names from suggestions
-    const userItems = await prisma.item.findMany({ where: { userId } })
+    const userItems = await prisma.item.findMany({
+      where: { userId },
+      select: { id: true, name: true }
+    })
+    
     for (const item of userItems) {
       const newName = SUGGESTION_TRANSLATION[item.name]
       if (newName && newName !== item.name) {
@@ -212,12 +225,12 @@ export async function migrateToPortuguese(): Promise<{
     }
 
     console.log(`Migration complete: ${categoriesUpdated} categories, ${suggestionsUpdated} suggestions, ${itemsUpdated} items updated`)
-    
-    return { 
-      success: true, 
-      categoriesUpdated, 
+
+    return {
+      success: true,
+      categoriesUpdated,
       suggestionsUpdated,
-      itemsUpdated
+      itemsUpdated,
     }
   } catch (error) {
     console.error('Failed to migrate to Portuguese:', error)

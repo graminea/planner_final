@@ -1,15 +1,17 @@
-'use client'
+"use client"
 
 /**
- * TagManager - Manage tags
- * 
- * MINIMAL UI - Intentionally unstyled for v0 redesign
+ * TagManager - Manage tags with styled chips
  */
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import type { Tag } from '@/app/actions/tags'
-import { createTag, deleteTag } from '@/app/actions/tags'
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Plus, X } from "lucide-react"
+import type { Tag } from "@/app/actions/tags"
+import { createTag, deleteTag } from "@/app/actions/tags"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 
 interface TagManagerProps {
   tags: Tag[]
@@ -18,73 +20,66 @@ interface TagManagerProps {
 export function TagManager({ tags }: TagManagerProps) {
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
-  const [newTagName, setNewTagName] = useState('')
+  const [newTagName, setNewTagName] = useState("")
   const [isCreating, setIsCreating] = useState(false)
 
   const handleCreate = async () => {
     if (!newTagName.trim()) return
-    
+
     setIsCreating(true)
     await createTag(newTagName)
-    setNewTagName('')
+    setNewTagName("")
     setShowForm(false)
     setIsCreating(false)
     router.refresh()
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Excluir esta etiqueta?')) return
+    if (!confirm("Excluir esta etiqueta?")) return
     await deleteTag(id)
     router.refresh()
   }
 
   return (
-    <div style={{ padding: '8px', border: '1px solid #ddd' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <strong>Etiquetas</strong>
-        <button onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancelar' : '+ Adicionar Etiqueta'}
-        </button>
-      </div>
-
-      {showForm && (
-        <div style={{ marginBottom: '8px' }}>
-          <input
+    <div className="space-y-3">
+      {showForm ? (
+        <div className="flex gap-2">
+          <Input
             type="text"
             placeholder="Nome da etiqueta"
             value={newTagName}
             onChange={(e) => setNewTagName(e.target.value)}
-            style={{ marginRight: '8px' }}
+            className="h-9"
+            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
           />
-          <button onClick={handleCreate} disabled={isCreating || !newTagName.trim()}>
+          <Button size="sm" onClick={handleCreate} disabled={isCreating || !newTagName.trim()} className="h-9">
             Criar
-          </button>
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setShowForm(false)} className="h-9">
+            <X className="w-4 h-4" />
+          </Button>
         </div>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setShowForm(true)} className="w-full h-9">
+          <Plus className="w-4 h-4 mr-1" />
+          Nova Etiqueta
+        </Button>
       )}
 
       {tags.length === 0 ? (
-        <p style={{ color: '#888', fontSize: '14px' }}>Nenhuma etiqueta ainda</p>
+        <p className="text-sm text-muted-foreground text-center py-2">Nenhuma etiqueta ainda</p>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-          {tags.map(tag => (
-            <span 
-              key={tag.id} 
-              style={{ 
-                backgroundColor: '#eee', 
-                padding: '2px 8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
+        <div className="flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <Badge key={tag.id} variant="secondary" className="group pl-3 pr-1 py-1 gap-1">
               {tag.name}
-              <button 
+              <button
                 onClick={() => handleDelete(tag.id)}
-                style={{ fontSize: '10px', border: 'none', cursor: 'pointer' }}
+                className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 transition-colors"
               >
-                ×
+                <X className="w-3 h-3" />
               </button>
-            </span>
+            </Badge>
           ))}
         </div>
       )}

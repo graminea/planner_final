@@ -30,16 +30,16 @@ export async function createOption(
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-
+    
     if (!userId) {
       return { success: false, error: 'Not authenticated' }
     }
 
     // Verify item ownership
     const item = await prisma.item.findFirst({
-      where: { id: itemId, userId },
+      where: { id: itemId, userId }
     })
-
+    
     if (!item) {
       return { success: false, error: 'Item not found' }
     }
@@ -57,7 +57,7 @@ export async function createOption(
         minPrice: data.minPrice || null,
         notes: data.notes || null,
         itemId,
-      },
+      }
     })
 
     revalidatePath('/dashboard')
@@ -78,7 +78,7 @@ export async function updateOption(
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-
+    
     if (!userId) {
       return { success: false, error: 'Not authenticated' }
     }
@@ -86,9 +86,9 @@ export async function updateOption(
     // Verify ownership through item
     const option = await prisma.option.findFirst({
       where: { id: optionId },
-      include: { item: true },
+      include: { item: true }
     })
-
+    
     if (!option || option.item.userId !== userId) {
       return { success: false, error: 'Option not found' }
     }
@@ -102,7 +102,7 @@ export async function updateOption(
         ...(data.desiredPrice !== undefined && { desiredPrice: data.desiredPrice }),
         ...(data.minPrice !== undefined && { minPrice: data.minPrice }),
         ...(data.notes !== undefined && { notes: data.notes }),
-      },
+      }
     })
 
     revalidatePath('/dashboard')
@@ -120,7 +120,7 @@ export async function deleteOption(optionId: string): Promise<{ success: boolean
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-
+    
     if (!userId) {
       return { success: false, error: 'Not authenticated' }
     }
@@ -128,16 +128,14 @@ export async function deleteOption(optionId: string): Promise<{ success: boolean
     // Verify ownership through item
     const option = await prisma.option.findFirst({
       where: { id: optionId },
-      include: { item: true },
+      include: { item: true }
     })
-
+    
     if (!option || option.item.userId !== userId) {
       return { success: false, error: 'Option not found' }
     }
 
-    await prisma.option.delete({
-      where: { id: optionId },
-    })
+    await prisma.option.delete({ where: { id: optionId } })
 
     revalidatePath('/dashboard')
     return { success: true }
@@ -153,26 +151,37 @@ export async function deleteOption(optionId: string): Promise<{ success: boolean
 export async function getOptions(itemId: string) {
   try {
     const userId = await getCurrentUserId()
-
+    
     if (!userId) {
       return []
     }
 
     // Verify item ownership
     const item = await prisma.item.findFirst({
-      where: { id: itemId, userId },
+      where: { id: itemId, userId }
     })
-
+    
     if (!item) {
       return []
     }
 
     const options = await prisma.option.findMany({
       where: { itemId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'asc' }
     })
 
-    return options
+    return options.map((opt: any) => ({
+      id: opt.id,
+      store: opt.store,
+      url: opt.url,
+      currentPrice: opt.currentPrice ? Number(opt.currentPrice) : null,
+      desiredPrice: opt.desiredPrice ? Number(opt.desiredPrice) : null,
+      minPrice: opt.minPrice ? Number(opt.minPrice) : null,
+      notes: opt.notes,
+      itemId: opt.itemId,
+      createdAt: opt.createdAt,
+      updatedAt: opt.updatedAt,
+    }))
   } catch (error) {
     console.error('Failed to fetch options:', error)
     return []

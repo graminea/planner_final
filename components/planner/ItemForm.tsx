@@ -1,90 +1,72 @@
-'use client'
+"use client"
+
+import type React from "react"
 
 /**
- * ItemForm - Create/Edit item form
- * 
- * MINIMAL UI - Intentionally unstyled for v0 redesign
- * 
- * Features:
- * - Name with autocomplete suggestions
- * - Category selection
- * - Priority selection
- * - Planned price
- * - Tags
+ * ItemForm - Create/Edit item form with mobile-first design
  */
 
-import { useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { createItem, updateItem } from '@/app/actions/items-new'
-import type { Item } from '@/app/actions/items-new'
-import type { Category } from '@/app/actions/categories'
-import type { Tag } from '@/app/actions/tags'
-import type { ItemSuggestion } from '@/app/actions/suggestions'
-import { ItemSuggestionInput } from './ItemSuggestionInput'
-import { PRIORITY_OPTIONS } from '@/lib/filters'
+import { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { createItem, updateItem } from "@/app/actions/items-new"
+import type { Item } from "@/app/actions/items-new"
+import type { Category } from "@/app/actions/categories"
+import type { Tag } from "@/app/actions/tags"
+import type { ItemSuggestion } from "@/app/actions/suggestions"
+import { ItemSuggestionInput } from "./ItemSuggestionInput"
+import { PRIORITY_OPTIONS } from "@/lib/filters"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
 
 interface ItemFormProps {
   categories: Category[]
   tags: Tag[]
-  // If provided, we're editing
   item?: Item
-  // Callback on success
   onSuccess?: () => void
   onCancel?: () => void
 }
 
-export function ItemForm({ 
-  categories, 
-  tags, 
-  item, 
-  onSuccess, 
-  onCancel 
-}: ItemFormProps) {
+export function ItemForm({ categories, tags, item, onSuccess, onCancel }: ItemFormProps) {
   const router = useRouter()
   const isEditing = !!item
 
-  // Form state
-  const [name, setName] = useState(item?.name || '')
+  const [name, setName] = useState(item?.name || "")
   const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId || null)
   const [priority, setPriority] = useState(item?.priority || 2)
-  const [plannedPrice, setPlannedPrice] = useState(item?.plannedPrice?.toString() || '')
-  const [notes, setNotes] = useState(item?.notes || '')
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
-    item?.tags.map(t => t.id) || []
-  )
-  
+  const [plannedPrice, setPlannedPrice] = useState(item?.plannedPrice?.toString() || "")
+  const [notes, setNotes] = useState(item?.notes || "")
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(item?.tags.map((t) => t.id) || [])
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Handle suggestion selection
-  const handleSelectSuggestion = useCallback((suggestion: ItemSuggestion) => {
-    setName(suggestion.name)
-    
-    // Auto-select category if suggestion has one
-    if (suggestion.categoryName) {
-      const matchingCategory = categories.find(
-        c => c.name.toLowerCase() === suggestion.categoryName?.toLowerCase()
-      )
-      if (matchingCategory) {
-        setCategoryId(matchingCategory.id)
-      }
-    }
-  }, [categories])
+  const handleSelectSuggestion = useCallback(
+    (suggestion: ItemSuggestion) => {
+      setName(suggestion.name)
 
-  // Toggle tag
+      if (suggestion.categoryName) {
+        const matchingCategory = categories.find((c) => c.name.toLowerCase() === suggestion.categoryName?.toLowerCase())
+        if (matchingCategory) {
+          setCategoryId(matchingCategory.id)
+        }
+      }
+    },
+    [categories],
+  )
+
   const toggleTag = (tagId: string) => {
-    setSelectedTagIds(prev => 
-      prev.includes(tagId)
-        ? prev.filter(id => id !== tagId)
-        : [...prev, tagId]
-    )
+    setSelectedTagIds((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]))
   }
 
-  // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
-      setError('O nome do item é obrigatório')
+      setError("O nome do item é obrigatório")
       return
     }
 
@@ -97,12 +79,12 @@ export function ItemForm({
           name: name.trim(),
           categoryId,
           priority,
-          plannedPrice: plannedPrice ? parseFloat(plannedPrice) : null,
-          notes: notes || null
+          plannedPrice: plannedPrice ? Number.parseFloat(plannedPrice) : null,
+          notes: notes || null,
         })
-        
+
         if (!result.success) {
-          setError(result.error || 'Failed to update item')
+          setError(result.error || "Erro ao atualizar item")
           setIsSubmitting(false)
           return
         }
@@ -111,13 +93,13 @@ export function ItemForm({
           name: name.trim(),
           categoryId,
           priority,
-          plannedPrice: plannedPrice ? parseFloat(plannedPrice) : null,
+          plannedPrice: plannedPrice ? Number.parseFloat(plannedPrice) : null,
           notes: notes || null,
-          tagIds: selectedTagIds
+          tagIds: selectedTagIds,
         })
-        
+
         if (!result.success) {
-          setError(result.error || 'Failed to create item')
+          setError(result.error || "Erro ao criar item")
           setIsSubmitting(false)
           return
         }
@@ -125,125 +107,137 @@ export function ItemForm({
 
       router.refresh()
       onSuccess?.()
-      
-      // Reset form if creating
+
       if (!isEditing) {
-        setName('')
+        setName("")
         setCategoryId(null)
         setPriority(2)
-        setPlannedPrice('')
-        setNotes('')
+        setPlannedPrice("")
+        setNotes("")
         setSelectedTagIds([])
       }
     } catch (err) {
-      setError('Ocorreu um erro')
+      setError("Ocorreu um erro")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: '8px', border: '1px solid #ddd' }}>
-      <h3>{isEditing ? 'Editar Item' : 'Adicionar Novo Item'}</h3>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>}
 
-      {error && (
-        <div style={{ color: 'red', marginBottom: '8px' }}>{error}</div>
-      )}
-
-      {/* Name with autocomplete */}
-      <div style={{ marginBottom: '8px' }}>
-        <label>Nome:</label>
+      <div className="space-y-2">
+        <Label htmlFor="item-name">Nome do Item</Label>
         <ItemSuggestionInput
           value={name}
           onChange={setName}
           onSelectSuggestion={handleSelectSuggestion}
-          placeholder="Nome do item..."
+          placeholder="Ex: Sofá, Mesa de jantar..."
         />
       </div>
 
-      {/* Category */}
-      <div style={{ marginBottom: '8px' }}>
-        <label>Categoria: </label>
-        <select
-          value={categoryId || ''}
-          onChange={(e) => setCategoryId(e.target.value || null)}
-        >
-          <option value="">Sem Categoria</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>
-              {cat.icon} {cat.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Categoria</Label>
+          <Select value={categoryId || "none"} onValueChange={(val) => setCategoryId(val === "none" ? null : val)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecionar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem Categoria</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.icon} {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* Priority */}
-      <div style={{ marginBottom: '8px' }}>
-        <label>Prioridade: </label>
-        {PRIORITY_OPTIONS.map(opt => (
-          <label key={opt.value} style={{ marginRight: '12px' }}>
-            <input
-              type="radio"
-              name="priority"
-              value={opt.value}
-              checked={priority === opt.value}
-              onChange={() => setPriority(opt.value)}
+        <div className="space-y-2">
+          <Label htmlFor="planned-price">Preço Planejado</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+            <Input
+              id="planned-price"
+              type="number"
+              step="0.01"
+              placeholder="0,00"
+              value={plannedPrice}
+              onChange={(e) => setPlannedPrice(e.target.value)}
+              className="pl-9"
             />
-            {opt.label}
-          </label>
-        ))}
+          </div>
+        </div>
       </div>
 
-      {/* Planned Price */}
-      <div style={{ marginBottom: '8px' }}>
-        <label>Preço Planejado: </label>
-        <input
-          type="number"
-          step="0.01"
-          placeholder="0.00"
-          value={plannedPrice}
-          onChange={(e) => setPlannedPrice(e.target.value)}
-          style={{ width: '100px' }}
-        />
-      </div>
-
-      {/* Tags */}
-      {tags.length > 0 && (
-        <div style={{ marginBottom: '8px' }}>
-          <label>Etiquetas: </label>
-          {tags.map(tag => (
-            <label key={tag.id} style={{ marginRight: '8px' }}>
-              <input
-                type="checkbox"
-                checked={selectedTagIds.includes(tag.id)}
-                onChange={() => toggleTag(tag.id)}
-              />
-              {tag.name}
-            </label>
+      <div className="space-y-2">
+        <Label>Prioridade</Label>
+        <div className="flex gap-2">
+          {PRIORITY_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setPriority(opt.value)}
+              className={cn(
+                "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors border",
+                priority === opt.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground border-border hover:bg-muted",
+              )}
+            >
+              {opt.label}
+            </button>
           ))}
+        </div>
+      </div>
+
+      {tags.length > 0 && (
+        <div className="space-y-2">
+          <Label>Etiquetas</Label>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <label
+                key={tag.id}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm cursor-pointer border transition-colors",
+                  selectedTagIds.includes(tag.id)
+                    ? "bg-primary/10 border-primary text-primary"
+                    : "bg-card border-border hover:bg-muted",
+                )}
+              >
+                <Checkbox
+                  checked={selectedTagIds.includes(tag.id)}
+                  onCheckedChange={() => toggleTag(tag.id)}
+                  className="h-4 w-4"
+                />
+                {tag.name}
+              </label>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Notes */}
-      <div style={{ marginBottom: '8px' }}>
-        <label>Notas:</label>
-        <textarea
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notas</Label>
+        <Textarea
+          id="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notas opcionais..."
-          style={{ width: '100%', minHeight: '60px' }}
+          placeholder="Adicione observações..."
+          className="min-h-[80px] resize-none"
         />
       </div>
 
-      {/* Actions */}
-      <div>
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Salvando...' : (isEditing ? 'Atualizar' : 'Adicionar Item')}
-        </button>
+      <div className="flex gap-2 pt-2">
+        <Button type="submit" disabled={isSubmitting} className="flex-1">
+          {isSubmitting ? "Salvando..." : isEditing ? "Atualizar" : "Adicionar Item"}
+        </Button>
         {onCancel && (
-          <button type="button" onClick={onCancel} style={{ marginLeft: '8px' }}>
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
-          </button>
+          </Button>
         )}
       </div>
     </form>

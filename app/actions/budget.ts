@@ -51,7 +51,7 @@ export async function getBudgetSettings(): Promise<BudgetSettings | null> {
  */
 export async function setBudget(
   totalBudget: number,
-  currency: string = 'USD'
+  currency: string = 'BRL'
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
@@ -217,7 +217,7 @@ export async function getBudgetSummary(): Promise<BudgetSummary | null> {
 
       categoryBudgets.push({
         id: 'uncategorized',
-        name: 'Uncategorized',
+        name: 'Sem Categoria',
         icon: '📌',
         budget: null,
         planned,
@@ -242,7 +242,7 @@ export async function getBudgetSummary(): Promise<BudgetSummary | null> {
       remaining,
       percentSpent: totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0,
       percentPlanned: totalBudget > 0 ? (totalPlanned / totalBudget) * 100 : 0,
-      currency: settings?.currency || 'USD',
+      currency: settings?.currency || 'BRL',
       categories: categoryBudgets
     }
   } catch (error) {

@@ -1,7 +1,7 @@
 'use server'
 
 /**
- * Server Actions for Item Management
+ * Server Actions for Item Management (Legacy Tracker)
  * 
  * All actions are protected and require authentication.
  * Items belong to the authenticated user only.
@@ -50,13 +50,33 @@ export async function getItems(): Promise<Item[]> {
       where: { userId },
       include: {
         options: {
-          orderBy: { createdAt: 'asc' },
-        },
+          orderBy: { createdAt: 'asc' }
+        }
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     })
 
-    return items as Item[]
+    return items.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      checked: item.isBought || false,
+      notes: item.notes,
+      userId: item.userId,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      options: item.options?.map((opt: any) => ({
+        id: opt.id,
+        store: opt.store,
+        url: opt.url,
+        currentPrice: opt.currentPrice ? Number(opt.currentPrice) : null,
+        desiredPrice: opt.desiredPrice ? Number(opt.desiredPrice) : null,
+        minPrice: opt.minPrice ? Number(opt.minPrice) : null,
+        notes: opt.notes,
+        itemId: opt.itemId,
+        createdAt: opt.createdAt,
+        updatedAt: opt.updatedAt,
+      })) || []
+    })) as Item[]
   } catch (error) {
     console.error('Failed to fetch items:', error)
     return []
@@ -78,12 +98,34 @@ export async function getItem(id: string): Promise<Item | null> {
       where: { id, userId },
       include: {
         options: {
-          orderBy: { createdAt: 'asc' },
-        },
-      },
+          orderBy: { createdAt: 'asc' }
+        }
+      }
     })
 
-    return item as Item | null
+    if (!item) return null
+
+    return {
+      id: item.id,
+      name: item.name,
+      checked: item.isBought || false,
+      notes: item.notes,
+      userId: item.userId,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      options: item.options?.map((opt: any) => ({
+        id: opt.id,
+        store: opt.store,
+        url: opt.url,
+        currentPrice: opt.currentPrice ? Number(opt.currentPrice) : null,
+        desiredPrice: opt.desiredPrice ? Number(opt.desiredPrice) : null,
+        minPrice: opt.minPrice ? Number(opt.minPrice) : null,
+        notes: opt.notes,
+        itemId: opt.itemId,
+        createdAt: opt.createdAt,
+        updatedAt: opt.updatedAt,
+      })) || []
+    } as Item
   } catch (error) {
     console.error('Failed to fetch item:', error)
     return null
@@ -97,7 +139,7 @@ export async function createItem(name: string): Promise<{ success: boolean; erro
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-
+    
     if (!userId) {
       return { success: false, error: 'Not authenticated' }
     }
@@ -110,14 +152,27 @@ export async function createItem(name: string): Promise<{ success: boolean; erro
       data: {
         name: name.trim(),
         userId,
+        isBought: false,
       },
       include: {
-        options: true,
-      },
+        options: true
+      }
     })
 
     revalidatePath('/dashboard')
-    return { success: true, item: item as Item }
+    return {
+      success: true,
+      item: {
+        id: item.id,
+        name: item.name,
+        checked: item.isBought || false,
+        notes: item.notes,
+        userId: item.userId,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        options: [],
+      }
+    }
   } catch (error) {
     console.error('Failed to create item:', error)
     return { success: false, error: 'Failed to create item' }
@@ -134,17 +189,17 @@ export async function updateItem(
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-
+    
     if (!userId) {
       return { success: false, error: 'Not authenticated' }
     }
 
     // Verify ownership
-    const existingItem = await prisma.item.findFirst({
-      where: { id, userId },
+    const existing = await prisma.item.findFirst({
+      where: { id, userId }
     })
-
-    if (!existingItem) {
+    
+    if (!existing) {
       return { success: false, error: 'Item not found' }
     }
 
@@ -152,9 +207,9 @@ export async function updateItem(
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name.trim() }),
-        ...(data.checked !== undefined && { checked: data.checked }),
+        ...(data.checked !== undefined && { isBought: data.checked }),
         ...(data.notes !== undefined && { notes: data.notes }),
-      },
+      }
     })
 
     revalidatePath('/dashboard')
@@ -172,22 +227,25 @@ export async function toggleItemChecked(id: string): Promise<{ success: boolean;
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-
+    
     if (!userId) {
       return { success: false, error: 'Not authenticated' }
     }
 
     const item = await prisma.item.findFirst({
-      where: { id, userId },
+      where: { id, userId }
     })
-
+    
     if (!item) {
       return { success: false, error: 'Item not found' }
     }
 
     await prisma.item.update({
       where: { id },
-      data: { checked: !item.checked },
+      data: {
+        isBought: !item.isBought,
+        boughtAt: !item.isBought ? new Date() : null
+      }
     })
 
     revalidatePath('/dashboard')
@@ -205,23 +263,20 @@ export async function deleteItem(id: string): Promise<{ success: boolean; error?
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-
+    
     if (!userId) {
       return { success: false, error: 'Not authenticated' }
     }
 
-    // Verify ownership
-    const existingItem = await prisma.item.findFirst({
-      where: { id, userId },
+    const existing = await prisma.item.findFirst({
+      where: { id, userId }
     })
-
-    if (!existingItem) {
+    
+    if (!existing) {
       return { success: false, error: 'Item not found' }
     }
 
-    await prisma.item.delete({
-      where: { id },
-    })
+    await prisma.item.delete({ where: { id } })
 
     revalidatePath('/dashboard')
     return { success: true }

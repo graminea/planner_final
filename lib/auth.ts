@@ -10,10 +10,27 @@ import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
 
-// Secret key for JWT signing (should be in environment variables)
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
-)
+/**
+ * Get the JWT secret key.
+ * SECURITY: No fallback - requires proper environment variable.
+ * Generate with: openssl rand -base64 32
+ */
+function getSecretKey(): Uint8Array {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET environment variable is required. ' +
+      'Generate one with: openssl rand -base64 32'
+    )
+  }
+  if (secret.length < 32) {
+    throw new Error(
+      'JWT_SECRET must be at least 32 characters for security. ' +
+      'Generate one with: openssl rand -base64 32'
+    )
+  }
+  return new TextEncoder().encode(secret)
+}
 
 const SESSION_COOKIE_NAME = 'session'
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
@@ -43,7 +60,7 @@ export async function createSession(userId: string): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(SECRET_KEY)
+    .sign(getSecretKey())
 
   return token
 }
@@ -53,7 +70,7 @@ export async function createSession(userId: string): Promise<string> {
  */
 export async function verifySession(token: string): Promise<{ userId: string } | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET_KEY)
+    const { payload } = await jwtVerify(token, getSecretKey())
     return { userId: payload.userId as string }
   } catch {
     return null

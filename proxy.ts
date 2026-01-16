@@ -1,7 +1,7 @@
 /**
- * Edge-compatible Middleware for Route Protection
+ * Proxy for Route Protection (Next.js 16+)
  * 
- * This middleware runs on the edge and protects routes by verifying
+ * This proxy runs on the edge and protects routes by verifying
  * JWT session tokens. It does NOT use Prisma (which isn't edge-compatible).
  */
 
@@ -15,7 +15,7 @@ const publicRoutes = ['/', '/login', '/register']
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/login', '/register']
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Check if route is public
@@ -30,11 +30,15 @@ export async function middleware(request: NextRequest) {
   
   if (sessionToken) {
     try {
-      const secretKey = new TextEncoder().encode(
-        process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
-      )
-      await jwtVerify(sessionToken, secretKey)
-      isAuthenticated = true
+      const secret = process.env.JWT_SECRET
+      if (!secret || secret.length < 32) {
+        console.error('JWT_SECRET missing or too short')
+        isAuthenticated = false
+      } else {
+        const secretKey = new TextEncoder().encode(secret)
+        await jwtVerify(sessionToken, secretKey)
+        isAuthenticated = true
+      }
     } catch {
       // Token is invalid or expired
       isAuthenticated = false

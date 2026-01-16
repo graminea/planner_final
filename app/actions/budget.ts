@@ -1,15 +1,15 @@
-'use server'
+"use server"
 
 /**
  * Server Actions for Budget Management
- * 
+ *
  * Tracks global and category-level budgets with spending calculations.
  */
 
-import { revalidatePath } from 'next/cache'
-import { prisma } from '@/lib/prisma'
-import { getCurrentUserId, requireAuth } from '@/lib/auth'
-import type { BudgetSettings, BudgetSummary, CategoryBudgetSummary } from '@/lib/types'
+import { revalidatePath } from "next/cache"
+import { sql, generateId } from "@/lib/db"
+import { getCurrentUserId, requireAuth } from "@/lib/auth"
+import type { BudgetSettings, BudgetSummary, CategoryBudgetSummary } from "@/lib/types"
 
 // Re-export types for convenience
 export type { BudgetSettings, BudgetSummary, CategoryBudgetSummary }
@@ -26,22 +26,25 @@ export async function getBudgetSettings(): Promise<BudgetSettings | null> {
   if (!userId) return null
 
   try {
-    const settings = await prisma.budgetSettings.findUnique({
-      where: { userId }
-    })
+    const settings = await sql`
+      SELECT id, "userId", "totalBudget", currency, "createdAt", "updatedAt"
+      FROM "BudgetSettings"
+      WHERE "userId" = ${userId}
+      LIMIT 1
+    `
 
-    if (!settings) return null
+    if (settings.length === 0) return null
 
     return {
-      id: settings.id,
-      userId: settings.userId,
-      totalBudget: Number(settings.totalBudget),
-      currency: settings.currency,
-      createdAt: settings.createdAt,
-      updatedAt: settings.updatedAt
+      id: settings[0].id,
+      userId: settings[0].userId,
+      totalBudget: Number(settings[0].totalBudget),
+      currency: settings[0].currency,
+      createdAt: settings[0].createdAt,
+      updatedAt: settings[0].updatedAt,
     }
   } catch (error) {
-    console.error('Failed to fetch budget settings:', error)
+    console.error("Failed to fetch budget settings:", error)
     return null
   }
 }
@@ -49,37 +52,40 @@ export async function getBudgetSettings(): Promise<BudgetSettings | null> {
 /**
  * Set global budget
  */
-export async function setBudget(
-  totalBudget: number,
-  currency: string = 'USD'
-): Promise<{ success: boolean; error?: string }> {
+export async function setBudget(totalBudget: number, currency = "USD"): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
     if (totalBudget < 0) {
-      return { success: false, error: 'Budget must be positive' }
+      return { success: false, error: "Budget must be positive" }
     }
 
-    await prisma.budgetSettings.upsert({
-      where: { userId },
-      create: {
-        userId,
-        totalBudget,
-        currency
-      },
-      update: {
-        totalBudget,
-        currency
-      }
-    })
+    // Check if settings exist
+    const existing = await sql`
+      SELECT id FROM "BudgetSettings" WHERE "userId" = ${userId} LIMIT 1
+    `
 
-    revalidatePath('/dashboard')
+    if (existing.length > 0) {
+      await sql`
+        UPDATE "BudgetSettings"
+        SET "totalBudget" = ${totalBudget}, currency = ${currency}, "updatedAt" = NOW()
+        WHERE "userId" = ${userId}
+      `
+    } else {
+      const id = generateId()
+      await sql`
+        INSERT INTO "BudgetSettings" (id, "userId", "totalBudget", currency, "createdAt", "updatedAt")
+        VALUES (${id}, ${userId}, ${totalBudget}, ${currency}, NOW(), NOW())
+      `
+    }
+
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to set budget:', error)
-    return { success: false, error: 'Failed to set budget' }
+    console.error("Failed to set budget:", error)
+    return { success: false, error: "Failed to set budget" }
   }
 }
 
@@ -88,31 +94,32 @@ export async function setBudget(
  */
 export async function setCategoryBudget(
   categoryId: string,
-  budget: number | null
+  budget: number | null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
     // Verify category ownership
-    const category = await prisma.category.findFirst({
-      where: { id: categoryId, userId }
-    })
-    if (!category) {
-      return { success: false, error: 'Category not found' }
+    const category = await sql`
+      SELECT id FROM "Category" WHERE id = ${categoryId} AND "userId" = ${userId} LIMIT 1
+    `
+    if (category.length === 0) {
+      return { success: false, error: "Category not found" }
     }
 
-    await prisma.category.update({
-      where: { id: categoryId },
-      data: { budget }
-    })
+    await sql`
+      UPDATE "Category"
+      SET budget = ${budget}, "updatedAt" = NOW()
+      WHERE id = ${categoryId}
+    `
 
-    revalidatePath('/dashboard')
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to set category budget:', error)
-    return { success: false, error: 'Failed to set category budget' }
+    console.error("Failed to set category budget:", error)
+    return { success: false, error: "Failed to set category budget" }
   }
 }
 
@@ -125,60 +132,48 @@ export async function getBudgetSummary(): Promise<BudgetSummary | null> {
 
   try {
     // Get budget settings
-    const settings = await prisma.budgetSettings.findUnique({
-      where: { userId }
-    })
+    const settingsResult = await sql`
+      SELECT id, "totalBudget", currency FROM "BudgetSettings" WHERE "userId" = ${userId} LIMIT 1
+    `
+    const settings = settingsResult[0] || null
 
-    // Get all categories with items
-    const categories = await prisma.category.findMany({
-      where: { userId },
-      include: {
-        items: {
-          select: {
-            id: true,
-            isBought: true,
-            plannedPrice: true,
-            boughtPrice: true,
-            links: {
-              where: { isSelected: true },
-              select: { price: true },
-              take: 1
-            }
-          }
-        }
-      },
-      orderBy: { order: 'asc' }
-    })
+    // Get all categories
+    const categories = await sql`
+      SELECT id, name, icon, budget, "order"
+      FROM "Category"
+      WHERE "userId" = ${userId}
+      ORDER BY "order" ASC
+    `
 
-    // Get uncategorized items
-    const uncategorizedItems = await prisma.item.findMany({
-      where: { userId, categoryId: null },
-      select: {
-        id: true,
-        isBought: true,
-        plannedPrice: true,
-        boughtPrice: true,
-        links: {
-          where: { isSelected: true },
-          select: { price: true },
-          take: 1
-        }
-      }
-    })
+    // Get all items with their selected links
+    const items = await sql`
+      SELECT i.id, i."isBought", i."plannedPrice", i."boughtPrice", i."categoryId",
+        (SELECT price FROM "ItemLink" WHERE "itemId" = i.id AND "isSelected" = true LIMIT 1) as "selectedLinkPrice"
+      FROM "Item" i
+      WHERE i."userId" = ${userId}
+    `
+
+    // Group items by category
+    const itemsByCategory = items.reduce((acc: Record<string, any[]>, item: any) => {
+      const catId = item.categoryId || "uncategorized"
+      if (!acc[catId]) acc[catId] = []
+      acc[catId].push(item)
+      return acc
+    }, {})
 
     // Calculate category summaries
     const categoryBudgets: CategoryBudgetSummary[] = categories.map((cat: any) => {
-      const items = cat.items as any[]
-      const planned = items.reduce((sum: number, item: any) => {
-        // Use selected link price, fall back to planned price
-        const selectedLinkPrice = item.links[0]?.price
-        const price = selectedLinkPrice 
-          ? Number(selectedLinkPrice)
-          : (item.plannedPrice ? Number(item.plannedPrice) : 0)
+      const catItems = itemsByCategory[cat.id] || []
+      const planned = catItems.reduce((sum: number, item: any) => {
+        const price = item.selectedLinkPrice
+          ? Number(item.selectedLinkPrice)
+          : item.plannedPrice
+            ? Number(item.plannedPrice)
+            : 0
         return sum + price
       }, 0)
-      
-      const spent = items.reduce((sum: number, item: any) => {
+
+      const spent = catItems.reduce((sum: number, item: any) => {
         if (!item.isBought) return sum
         return sum + (item.boughtPrice ? Number(item.boughtPrice) : 0)
       }, 0)
@@ -195,37 +190,39 @@ export async function getBudgetSummary(): Promise<BudgetSummary | null> {
         spent,
         remaining,
         percentSpent: planned > 0 ? (spent / planned) * 100 : 0,
-        itemCount: items.length,
-        boughtCount: items.filter((i: any) => i.isBought).length
+        itemCount: catItems.length,
+        boughtCount: catItems.filter((i: any) => i.isBought).length,
       }
     })
 
     // Add uncategorized if exists
+    const uncategorizedItems = itemsByCategory["uncategorized"] || []
     if (uncategorizedItems.length > 0) {
-      const planned = (uncategorizedItems as any[]).reduce((sum: number, item: any) => {
-        const selectedLinkPrice = item.links[0]?.price
-        const price = selectedLinkPrice 
-          ? Number(selectedLinkPrice)
-          : (item.plannedPrice ? Number(item.plannedPrice) : 0)
+      const planned = uncategorizedItems.reduce((sum: number, item: any) => {
+        const price = item.selectedLinkPrice
+          ? Number(item.selectedLinkPrice)
+          : item.plannedPrice
+            ? Number(item.plannedPrice)
+            : 0
         return sum + price
       }, 0)
-      
-      const spent = (uncategorizedItems as any[]).reduce((sum: number, item: any) => {
+
+      const spent = uncategorizedItems.reduce((sum: number, item: any) => {
         if (!item.isBought) return sum
         return sum + (item.boughtPrice ? Number(item.boughtPrice) : 0)
       }, 0)
 
       categoryBudgets.push({
-        id: 'uncategorized',
-        name: 'Uncategorized',
-        icon: '📌',
+        id: "uncategorized",
+        name: "Uncategorized",
+        icon: "📌",
         budget: null,
         planned,
         spent,
         remaining: planned - spent,
         percentSpent: planned > 0 ? (spent / planned) * 100 : 0,
         itemCount: uncategorizedItems.length,
-        boughtCount: (uncategorizedItems as any[]).filter((i: any) => i.isBought).length
+        boughtCount: uncategorizedItems.filter((i: any) => i.isBought).length,
       })
     }
 
@@ -242,11 +239,11 @@ export async function getBudgetSummary(): Promise<BudgetSummary | null> {
       remaining,
       percentSpent: totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0,
       percentPlanned: totalBudget > 0 ? (totalPlanned / totalBudget) * 100 : 0,
-      currency: settings?.currency || 'USD',
-      categories: categoryBudgets
+      currency: settings?.currency || "USD",
+      categories: categoryBudgets,
     }
   } catch (error) {
-    console.error('Failed to get budget summary:', error)
+    console.error("Failed to get budget summary:", error)
     return null
   }
 }

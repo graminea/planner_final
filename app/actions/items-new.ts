@@ -1,16 +1,16 @@
-'use server'
+"use server"
 
 /**
  * Server Actions for Item Management (Updated for Home Planner)
- * 
+ *
  * Items are the core entity - things to purchase for the home.
  * Supports categories, tags, multiple links, and budget tracking.
  */
 
-import { revalidatePath } from 'next/cache'
-import { prisma } from '@/lib/prisma'
-import { getCurrentUserId, requireAuth } from '@/lib/auth'
-import type { Item, ItemLink, ItemFilters, ItemSort, ItemSortField, ItemSortOrder } from '@/lib/types'
+import { revalidatePath } from "next/cache"
+import { sql, generateId } from "@/lib/db"
+import { getCurrentUserId, requireAuth } from "@/lib/auth"
+import type { Item, ItemLink, ItemFilters, ItemSort, ItemSortField, ItemSortOrder } from "@/lib/types"
 
 // Re-export types for convenience
 export type { Item, ItemLink, ItemFilters, ItemSort, ItemSortField, ItemSortOrder }
@@ -26,23 +26,21 @@ interface ItemTag {
 // ============================================================================
 
 /**
- * Transform Prisma item to our Item type with computed fields
+ * Transform raw item row to our Item type with computed fields
  */
-function transformItem(item: any): Item {
-  const links: ItemLink[] = item.links?.map((l: any) => ({
+function transformItem(item: any, links: any[], tags: any[], category: any): Item {
+  const itemLinks: ItemLink[] = links.map((l: any) => ({
     id: l.id,
     url: l.url,
     store: l.store,
     price: Number(l.price),
     isSelected: l.isSelected,
-    notes: l.notes
-  })) || []
+    notes: l.notes,
+  }))
 
-  const lowestPrice = links.length > 0
-    ? Math.min(...links.map(l => l.price))
-    : null
+  const lowestPrice = itemLinks.length > 0 ? Math.min(...itemLinks.map((l) => l.price)) : null
 
-  const selectedLink = links.find(l => l.isSelected) || null
+  const selectedLink = itemLinks.find((l) => l.isSelected) || null
 
   return {
     id: item.id,
@@ -57,19 +55,21 @@ function transformItem(item: any): Item {
     updatedAt: item.updatedAt,
     userId: item.userId,
     categoryId: item.categoryId,
-    category: item.category ? {
-      id: item.category.id,
-      name: item.category.name,
-      icon: item.category.icon
-    } : null,
-    tags: item.tags?.map((t: any) => ({
-      id: t.tag.id,
-      name: t.tag.name,
-      color: t.tag.color
-    })) || [],
-    links,
+    category: category
+      ? {
+          id: category.id,
+          name: category.name,
+          icon: category.icon,
+        }
+      : null,
+    tags: tags.map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      color: t.color,
+    })),
+    links: itemLinks,
     lowestPrice,
-    selectedLink
+    selectedLink,
   }
 }
 
@@ -80,81 +80,94 @@ function transformItem(item: any): Item {
 /**
  * Get all items with optional filtering and sorting
  */
-export async function getItems(
-  filters?: ItemFilters,
-  sort?: ItemSort
-): Promise<Item[]> {
+export async function getItems(filters?: ItemFilters, sort?: ItemSort): Promise<Item[]> {
   const userId = await getCurrentUserId()
   if (!userId) return []
 
   try {
-    // Build where clause
-    const where: any = { userId }
-    
+    // Build WHERE conditions
+    const whereConditions = [`"userId" = '${userId}'`]
+
     if (filters?.isBought !== undefined) {
-      where.isBought = filters.isBought
+      whereConditions.push(`"isBought" = ${filters.isBought}`)
     }
-    
     if (filters?.categoryId !== undefined) {
-      where.categoryId = filters.categoryId
+      whereConditions.push(filters.categoryId ? `"categoryId" = '${filters.categoryId}'` : `"categoryId" IS NULL`)
     }
-    
     if (filters?.priority !== undefined) {
-      where.priority = filters.priority
+      whereConditions.push(`priority = ${filters.priority}`)
     }
-    
     if (filters?.search) {
-      where.name = {
-        contains: filters.search,
-        mode: 'insensitive'
-      }
-    }
-    
-    if (filters?.tagIds && filters.tagIds.length > 0) {
-      where.tags = {
-        some: {
-          tagId: { in: filters.tagIds }
-        }
-      }
+      whereConditions.push(`name ILIKE '%${filters.search}%'`)
     }
 
-    // Build orderBy
-    let orderBy: any = { createdAt: 'desc' }
+    // Build ORDER BY
+    let orderBy = '"createdAt" DESC'
     if (sort) {
-      if (sort.field === 'price') {
-        orderBy = { plannedPrice: sort.order }
-      } else if (sort.field === 'priority') {
-        orderBy = { priority: sort.order }
-      } else if (sort.field === 'name') {
-        orderBy = { name: sort.order }
-      } else {
-        orderBy = { [sort.field]: sort.order }
-      }
+      const field =
+        sort.field === "price"
+          ? '"plannedPrice"'
+          : sort.field === "priority"
+            ? "priority"
+            : sort.field === "name"
+              ? "name"
+              : `"${sort.field}"`
+      orderBy = `${field} ${sort.order.toUpperCase()}`
     }
 
-    const items = await prisma.item.findMany({
-      where,
-      include: {
-        category: {
-          select: { id: true, name: true, icon: true }
-        },
-        tags: {
-          include: {
-            tag: {
-              select: { id: true, name: true, color: true }
-            }
-          }
-        },
-        links: {
-          orderBy: { price: 'asc' }
-        }
-      },
-      orderBy
-    })
+    const items = await sql`
+      SELECT i.*, 
+        c.id as "cat_id", c.name as "cat_name", c.icon as "cat_icon"
+      FROM "Item" i
+      LEFT JOIN "Category" c ON i."categoryId" = c.id
+      WHERE i."userId" = ${userId}
+        ${filters?.isBought !== undefined ? sql`AND i."isBought" = ${filters.isBought}` : sql``}
+        ${filters?.categoryId ? sql`AND i."categoryId" = ${filters.categoryId}` : sql``}
+        ${filters?.priority !== undefined ? sql`AND i.priority = ${filters.priority}` : sql``}
+        ${filters?.search ? sql`AND i.name ILIKE ${"%" + filters.search + "%"}` : sql``}
+      ORDER BY ${sort?.field === "price" ? sql`i."plannedPrice"` : sort?.field === "name" ? sql`i.name` : sql`i."createdAt"`} ${sort?.order === "asc" ? sql`ASC` : sql`DESC`}
+    `
 
-    return items.map(transformItem)
+    if (items.length === 0) return []
+
+    const itemIds = items.map((i) => i.id)
+
+    // Get all links for these items
+    const links = await sql`
+      SELECT * FROM "ItemLink" WHERE "itemId" = ANY(${itemIds}) ORDER BY price ASC
+    `
+
+    // Get all tags for these items
+    const itemTags = await sql`
+      SELECT it."itemId", t.id, t.name, t.color
+      FROM "ItemTag" it
+      JOIN "Tag" t ON it."tagId" = t.id
+      WHERE it."itemId" = ANY(${itemIds})
+    `
+
+    // Group by itemId
+    const linksByItem = links.reduce((acc: Record<string, any[]>, l: any) => {
+      if (!acc[l.itemId]) acc[l.itemId] = []
+      acc[l.itemId].push(l)
+      return acc
+    }, {})
+
+    const tagsByItem = itemTags.reduce((acc: Record<string, any[]>, t: any) => {
+      if (!acc[t.itemId]) acc[t.itemId] = []
+      acc[t.itemId].push(t)
+      return acc
+    }, {})
+
+    return items.map((item) =>
+      transformItem(
+        item,
+        linksByItem[item.id] || [],
+        tagsByItem[item.id] || [],
+        item.cat_id ? { id: item.cat_id, name: item.cat_name, icon: item.cat_icon } : null,
+      ),
+    )
   } catch (error) {
-    console.error('Failed to fetch items:', error)
+    console.error("Failed to fetch items:", error)
     return []
   }
 }
@@ -167,29 +180,38 @@ export async function getItem(id: string): Promise<Item | null> {
   if (!userId) return null
 
   try {
-    const item = await prisma.item.findFirst({
-      where: { id, userId },
-      include: {
-        category: {
-          select: { id: true, name: true, icon: true }
-        },
-        tags: {
-          include: {
-            tag: {
-              select: { id: true, name: true, color: true }
-            }
-          }
-        },
-        links: {
-          orderBy: { price: 'asc' }
-        }
-      }
-    })
+    const items = await sql`
+      SELECT i.*, 
+        c.id as "cat_id", c.name as "cat_name", c.icon as "cat_icon"
+      FROM "Item" i
+      LEFT JOIN "Category" c ON i."categoryId" = c.id
+      WHERE i.id = ${id} AND i."userId" = ${userId}
+      LIMIT 1
+    `
 
-    if (!item) return null
-    return transformItem(item)
+    if (items.length === 0) return null
+
+    const item = items[0]
+
+    const links = await sql`
+      SELECT * FROM "ItemLink" WHERE "itemId" = ${id} ORDER BY price ASC
+    `
+
+    const tags = await sql`
+      SELECT t.id, t.name, t.color
+      FROM "ItemTag" it
+      JOIN "Tag" t ON it."tagId" = t.id
+      WHERE it."itemId" = ${id}
+    `
+
+    return transformItem(
+      item,
+      links,
+      tags,
+      item.cat_id ? { id: item.cat_id, name: item.cat_name, icon: item.cat_icon } : null,
+    )
   } catch (error) {
-    console.error('Failed to fetch item:', error)
+    console.error("Failed to fetch item:", error)
     return null
   }
 }
@@ -208,45 +230,39 @@ export async function createItem(data: {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
     if (!data.name.trim()) {
-      return { success: false, error: 'Item name is required' }
+      return { success: false, error: "Item name is required" }
     }
 
-    const item = await prisma.item.create({
-      data: {
-        name: data.name.trim(),
-        userId,
-        categoryId: data.categoryId || null,
-        priority: data.priority || 2,
-        plannedPrice: data.plannedPrice || null,
-        notes: data.notes || null,
-        // Create tag connections if provided
-        tags: data.tagIds && data.tagIds.length > 0 ? {
-          create: data.tagIds.map(tagId => ({ tagId }))
-        } : undefined
-      },
-      include: {
-        category: {
-          select: { id: true, name: true, icon: true }
-        },
-        tags: {
-          include: {
-            tag: {
-              select: { id: true, name: true, color: true }
-            }
-          }
-        },
-        links: true
-      }
-    })
+    const id = generateId()
+    const now = new Date()
 
-    revalidatePath('/dashboard')
-    return { success: true, item: transformItem(item) }
+    await sql`
+      INSERT INTO "Item" (id, name, "userId", "categoryId", priority, "plannedPrice", notes, "isBought", "createdAt", "updatedAt")
+      VALUES (${id}, ${data.name.trim()}, ${userId}, ${data.categoryId || null}, ${data.priority || 2}, ${data.plannedPrice || null}, ${data.notes || null}, false, ${now}, ${now})
+    `
+
+    // Create tag connections if provided
+    if (data.tagIds && data.tagIds.length > 0) {
+      for (const tagId of data.tagIds) {
+        const tagItemId = generateId()
+        await sql`
+          INSERT INTO "ItemTag" (id, "itemId", "tagId", "createdAt")
+          VALUES (${tagItemId}, ${id}, ${tagId}, ${now})
+        `
+      }
+    }
+
+    revalidatePath("/dashboard")
+
+    // Fetch the created item
+    const createdItem = await getItem(id)
+    return { success: true, item: createdItem || undefined }
   } catch (error) {
-    console.error('Failed to create item:', error)
-    return { success: false, error: 'Failed to create item' }
+    console.error("Failed to create item:", error)
+    return { success: false, error: "Failed to create item" }
   }
 }
 
@@ -263,45 +279,44 @@ export async function updateItem(
     boughtPrice?: number | null
     notes?: string | null
     isBought?: boolean
-  }
+  },
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
     // Verify ownership
-    const existing = await prisma.item.findFirst({
-      where: { id, userId }
-    })
-    if (!existing) {
-      return { success: false, error: 'Item not found' }
+    const existing = await sql`
+      SELECT id FROM "Item" WHERE id = ${id} AND "userId" = ${userId} LIMIT 1
+    `
+    if (existing.length === 0) {
+      return { success: false, error: "Item not found" }
     }
 
     // If marking as bought, set boughtAt
-    const updateData: any = {}
-    
-    if (data.name !== undefined) updateData.name = data.name.trim()
-    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId
-    if (data.priority !== undefined) updateData.priority = data.priority
-    if (data.plannedPrice !== undefined) updateData.plannedPrice = data.plannedPrice
-    if (data.boughtPrice !== undefined) updateData.boughtPrice = data.boughtPrice
-    if (data.notes !== undefined) updateData.notes = data.notes
-    if (data.isBought !== undefined) {
-      updateData.isBought = data.isBought
-      updateData.boughtAt = data.isBought ? new Date() : null
-    }
+    const boughtAt = data.isBought === true ? new Date() : data.isBought === false ? null : undefined
 
-    await prisma.item.update({
-      where: { id },
-      data: updateData
-    })
+    await sql`
+      UPDATE "Item"
+      SET 
+        name = COALESCE(${data.name?.trim()}, name),
+        "categoryId" = COALESCE(${data.categoryId}, "categoryId"),
+        priority = COALESCE(${data.priority}, priority),
+        "plannedPrice" = COALESCE(${data.plannedPrice}, "plannedPrice"),
+        "boughtPrice" = COALESCE(${data.boughtPrice}, "boughtPrice"),
+        notes = COALESCE(${data.notes}, notes),
+        "isBought" = COALESCE(${data.isBought}, "isBought"),
+        "boughtAt" = COALESCE(${boughtAt}, "boughtAt"),
+        "updatedAt" = NOW()
+      WHERE id = ${id}
+    `
 
-    revalidatePath('/dashboard')
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to update item:', error)
-    return { success: false, error: 'Failed to update item' }
+    console.error("Failed to update item:", error)
+    return { success: false, error: "Failed to update item" }
   }
 }
 
@@ -312,30 +327,28 @@ export async function toggleItemBought(id: string): Promise<{ success: boolean; 
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
-    const item = await prisma.item.findFirst({
-      where: { id, userId }
-    })
-    if (!item) {
-      return { success: false, error: 'Item not found' }
+    const items = await sql`
+      SELECT id, "isBought" FROM "Item" WHERE id = ${id} AND "userId" = ${userId} LIMIT 1
+    `
+    if (items.length === 0) {
+      return { success: false, error: "Item not found" }
     }
 
-    const newIsBought = !item.isBought
-    
-    await prisma.item.update({
-      where: { id },
-      data: {
-        isBought: newIsBought,
-        boughtAt: newIsBought ? new Date() : null
-      }
-    })
+    const newIsBought = !items[0].isBought
 
-    revalidatePath('/dashboard')
+    await sql`
+      UPDATE "Item"
+      SET "isBought" = ${newIsBought}, "boughtAt" = ${newIsBought ? new Date() : null}, "updatedAt" = NOW()
+      WHERE id = ${id}
+    `
+
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to toggle item:', error)
-    return { success: false, error: 'Failed to toggle item' }
+    console.error("Failed to toggle item:", error)
+    return { success: false, error: "Failed to toggle item" }
   }
 }
 
@@ -346,22 +359,22 @@ export async function deleteItem(id: string): Promise<{ success: boolean; error?
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
-    const existing = await prisma.item.findFirst({
-      where: { id, userId }
-    })
-    if (!existing) {
-      return { success: false, error: 'Item not found' }
+    const existing = await sql`
+      SELECT id FROM "Item" WHERE id = ${id} AND "userId" = ${userId} LIMIT 1
+    `
+    if (existing.length === 0) {
+      return { success: false, error: "Item not found" }
     }
 
-    await prisma.item.delete({ where: { id } })
+    await sql`DELETE FROM "Item" WHERE id = ${id}`
 
-    revalidatePath('/dashboard')
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to delete item:', error)
-    return { success: false, error: 'Failed to delete item' }
+    console.error("Failed to delete item:", error)
+    return { success: false, error: "Failed to delete item" }
   }
 }
 
@@ -379,40 +392,40 @@ export async function addItemLink(
     store: string
     price: number
     notes?: string | null
-  }
+  },
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
     // Verify item ownership
-    const item = await prisma.item.findFirst({
-      where: { id: itemId, userId }
-    })
-    if (!item) {
-      return { success: false, error: 'Item not found' }
+    const items = await sql`
+      SELECT id FROM "Item" WHERE id = ${itemId} AND "userId" = ${userId} LIMIT 1
+    `
+    if (items.length === 0) {
+      return { success: false, error: "Item not found" }
     }
 
     // Check if this is the first link (make it selected by default)
-    const linkCount = await prisma.itemLink.count({ where: { itemId } })
-    
-    await prisma.itemLink.create({
-      data: {
-        itemId,
-        url: data.url,
-        store: data.store.trim(),
-        price: data.price,
-        notes: data.notes || null,
-        isSelected: linkCount === 0 // First link is selected by default
-      }
-    })
+    const linkCountResult = await sql`
+      SELECT COUNT(*) as count FROM "ItemLink" WHERE "itemId" = ${itemId}
+    `
+    const isFirst = Number(linkCountResult[0].count) === 0
 
-    revalidatePath('/dashboard')
+    const id = generateId()
+    const now = new Date()
+
+    await sql`
+      INSERT INTO "ItemLink" (id, "itemId", url, store, price, notes, "isSelected", "createdAt", "updatedAt")
+      VALUES (${id}, ${itemId}, ${data.url}, ${data.store.trim()}, ${data.price}, ${data.notes || null}, ${isFirst}, ${now}, ${now})
+    `
+
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to add link:', error)
-    return { success: false, error: 'Failed to add link' }
+    console.error("Failed to add link:", error)
+    return { success: false, error: "Failed to add link" }
   }
 }
 
@@ -426,37 +439,41 @@ export async function updateItemLink(
     store?: string
     price?: number
     notes?: string | null
-  }
+  },
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
     // Verify ownership through item
-    const link = await prisma.itemLink.findFirst({
-      where: { id: linkId },
-      include: { item: true }
-    })
-    if (!link || link.item.userId !== userId) {
-      return { success: false, error: 'Link not found' }
+    const links = await sql`
+      SELECT l.id, i."userId"
+      FROM "ItemLink" l
+      JOIN "Item" i ON l."itemId" = i.id
+      WHERE l.id = ${linkId}
+      LIMIT 1
+    `
+    if (links.length === 0 || links[0].userId !== userId) {
+      return { success: false, error: "Link not found" }
     }
 
-    await prisma.itemLink.update({
-      where: { id: linkId },
-      data: {
-        ...(data.url !== undefined && { url: data.url }),
-        ...(data.store !== undefined && { store: data.store.trim() }),
-        ...(data.price !== undefined && { price: data.price }),
-        ...(data.notes !== undefined && { notes: data.notes }),
-      }
-    })
+    await sql`
+      UPDATE "ItemLink"
+      SET 
+        url = COALESCE(${data.url}, url),
+        store = COALESCE(${data.store?.trim()}, store),
+        price = COALESCE(${data.price}, price),
+        notes = COALESCE(${data.notes}, notes),
+        "updatedAt" = NOW()
+      WHERE id = ${linkId}
+    `
 
-    revalidatePath('/dashboard')
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to update link:', error)
-    return { success: false, error: 'Failed to update link' }
+    console.error("Failed to update link:", error)
+    return { success: false, error: "Failed to update link" }
   }
 }
 
@@ -467,63 +484,55 @@ export async function deleteItemLink(linkId: string): Promise<{ success: boolean
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
-    const link = await prisma.itemLink.findFirst({
-      where: { id: linkId },
-      include: { item: true }
-    })
-    if (!link || link.item.userId !== userId) {
-      return { success: false, error: 'Link not found' }
+    const links = await sql`
+      SELECT l.id, i."userId"
+      FROM "ItemLink" l
+      JOIN "Item" i ON l."itemId" = i.id
+      WHERE l.id = ${linkId}
+      LIMIT 1
+    `
+    if (links.length === 0 || links[0].userId !== userId) {
+      return { success: false, error: "Link not found" }
     }
 
-    await prisma.itemLink.delete({ where: { id: linkId } })
+    await sql`DELETE FROM "ItemLink" WHERE id = ${linkId}`
 
-    revalidatePath('/dashboard')
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to delete link:', error)
-    return { success: false, error: 'Failed to delete link' }
+    console.error("Failed to delete link:", error)
+    return { success: false, error: "Failed to delete link" }
   }
 }
 
 /**
  * Select a link (mark as preferred option)
  */
-export async function selectItemLink(
-  itemId: string,
-  linkId: string
-): Promise<{ success: boolean; error?: string }> {
+export async function selectItemLink(itemId: string, linkId: string): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
     // Verify item ownership
-    const item = await prisma.item.findFirst({
-      where: { id: itemId, userId }
-    })
-    if (!item) {
-      return { success: false, error: 'Item not found' }
+    const items = await sql`
+      SELECT id FROM "Item" WHERE id = ${itemId} AND "userId" = ${userId} LIMIT 1
+    `
+    if (items.length === 0) {
+      return { success: false, error: "Item not found" }
     }
 
     // Deselect all links for this item, then select the chosen one
-    await prisma.$transaction([
-      prisma.itemLink.updateMany({
-        where: { itemId },
-        data: { isSelected: false }
-      }),
-      prisma.itemLink.update({
-        where: { id: linkId },
-        data: { isSelected: true }
-      })
-    ])
+    await sql`UPDATE "ItemLink" SET "isSelected" = false WHERE "itemId" = ${itemId}`
+    await sql`UPDATE "ItemLink" SET "isSelected" = true WHERE id = ${linkId}`
 
-    revalidatePath('/dashboard')
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
-    console.error('Failed to select link:', error)
-    return { success: false, error: 'Failed to select link' }
+    console.error("Failed to select link:", error)
+    return { success: false, error: "Failed to select link" }
   }
 }
 

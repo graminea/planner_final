@@ -1,17 +1,8 @@
-'use server'
-
-/**
- * Server Actions for Item Suggestions
- * 
- * Provides autocomplete suggestions for common household items.
- * Combines system-seeded suggestions with user-created ones.
- */
-
-import { revalidatePath } from 'next/cache'
-import { prisma } from '@/lib/prisma'
-import { getCurrentUserId, requireAuth } from '@/lib/auth'
-import { DEFAULT_SUGGESTIONS } from '@/lib/types'
-import type { ItemSuggestion } from '@/lib/types'
+"use server"
+import { sql, generateId } from "@/lib/db"
+import { getCurrentUserId, requireAuth } from "@/lib/auth"
+import { DEFAULT_SUGGESTIONS } from "@/lib/types"
+import type { ItemSuggestion } from "@/lib/types"
 
 // Re-export for convenience
 export type { ItemSuggestion }
@@ -23,37 +14,25 @@ export type { ItemSuggestion }
 /**
  * Search suggestions by name (for autocomplete)
  */
-export async function searchSuggestions(
-  query: string,
-  limit: number = 10
-): Promise<ItemSuggestion[]> {
+export async function searchSuggestions(query: string, limit = 10): Promise<ItemSuggestion[]> {
   if (!query.trim()) return []
 
   try {
     const userId = await getCurrentUserId()
-    
+
     // Search both system and user suggestions
-    const suggestions = await prisma.itemSuggestion.findMany({
-      where: {
-        name: {
-          contains: query.trim(),
-          mode: 'insensitive'
-        },
-        OR: [
-          { isSystem: true },
-          { userId: userId || undefined }
-        ]
-      },
-      orderBy: [
-        { usageCount: 'desc' },
-        { name: 'asc' }
-      ],
-      take: limit
-    })
+    const suggestions = await sql`
+      SELECT id, name, "categoryName", icon, "isSystem", "usageCount", "createdAt", "userId"
+      FROM "ItemSuggestion"
+      WHERE name ILIKE ${"%" + query.trim() + "%"}
+        AND ("isSystem" = true OR "userId" = ${userId})
+      ORDER BY "usageCount" DESC, name ASC
+      LIMIT ${limit}
+    `
 
     return suggestions as ItemSuggestion[]
   } catch (error) {
-    console.error('Failed to search suggestions:', error)
+    console.error("Failed to search suggestions:", error)
     return []
   }
 }
@@ -64,23 +43,17 @@ export async function searchSuggestions(
 export async function getAllSuggestions(): Promise<ItemSuggestion[]> {
   try {
     const userId = await getCurrentUserId()
-    
-    const suggestions = await prisma.itemSuggestion.findMany({
-      where: {
-        OR: [
-          { isSystem: true },
-          { userId: userId || undefined }
-        ]
-      },
-      orderBy: [
-        { categoryName: 'asc' },
-        { name: 'asc' }
-      ]
-    })
+
+    const suggestions = await sql`
+      SELECT id, name, "categoryName", icon, "isSystem", "usageCount", "createdAt", "userId"
+      FROM "ItemSuggestion"
+      WHERE "isSystem" = true OR "userId" = ${userId}
+      ORDER BY "categoryName" ASC, name ASC
+    `
 
     return suggestions as ItemSuggestion[]
   } catch (error) {
-    console.error('Failed to fetch suggestions:', error)
+    console.error("Failed to fetch suggestions:", error)
     return []
   }
 }
@@ -91,29 +64,27 @@ export async function getAllSuggestions(): Promise<ItemSuggestion[]> {
 export async function seedSystemSuggestions(): Promise<{ success: boolean; error?: string }> {
   try {
     // Check if already seeded
-    const existingCount = await prisma.itemSuggestion.count({
-      where: { isSystem: true }
-    })
-    
-    if (existingCount > 0) {
+    const existing = await sql`
+      SELECT COUNT(*) as count FROM "ItemSuggestion" WHERE "isSystem" = true
+    `
+
+    if (Number(existing[0].count) > 0) {
       return { success: true } // Already seeded
     }
 
     // Create system suggestions
-    await prisma.itemSuggestion.createMany({
-      data: DEFAULT_SUGGESTIONS.map(s => ({
-        name: s.name,
-        icon: s.icon,
-        categoryName: s.category, // Map 'category' to 'categoryName'
-        isSystem: true,
-        userId: null
-      }))
-    })
+    for (const s of DEFAULT_SUGGESTIONS) {
+      const id = generateId()
+      await sql`
+        INSERT INTO "ItemSuggestion" (id, name, icon, "categoryName", "isSystem", "userId", "createdAt")
+        VALUES (${id}, ${s.name}, ${s.icon || null}, ${s.category || null}, true, NULL, NOW())
+      `
+    }
 
     return { success: true }
   } catch (error) {
-    console.error('Failed to seed suggestions:', error)
-    return { success: false, error: 'Failed to seed suggestions' }
+    console.error("Failed to seed suggestions:", error)
+    return { success: false, error: "Failed to seed suggestions" }
   }
 }
 
@@ -123,31 +94,41 @@ export async function seedSystemSuggestions(): Promise<{ success: boolean; error
 export async function createSuggestion(
   name: string,
   categoryName?: string,
-  icon?: string
+  icon?: string,
 ): Promise<{ success: boolean; error?: string; suggestion?: ItemSuggestion }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    if (!userId) return { success: false, error: "Not authenticated" }
 
     if (!name.trim()) {
-      return { success: false, error: 'Suggestion name is required' }
+      return { success: false, error: "Suggestion name is required" }
     }
 
-    const suggestion = await prisma.itemSuggestion.create({
-      data: {
+    const id = generateId()
+    const now = new Date()
+
+    await sql`
+      INSERT INTO "ItemSuggestion" (id, name, "categoryName", icon, "isSystem", "userId", "createdAt")
+      VALUES (${id}, ${name.trim()}, ${categoryName || null}, ${icon || null}, false, ${userId}, ${now})
+    `
+
+    return {
+      success: true,
+      suggestion: {
+        id,
         name: name.trim(),
         categoryName: categoryName || null,
         icon: icon || null,
         isSystem: false,
-        userId
-      }
-    })
-
-    return { success: true, suggestion: suggestion as ItemSuggestion }
+        usageCount: 0,
+        userId,
+        createdAt: now,
+      } as ItemSuggestion,
+    }
   } catch (error) {
-    console.error('Failed to create suggestion:', error)
-    return { success: false, error: 'Failed to create suggestion' }
+    console.error("Failed to create suggestion:", error)
+    return { success: false, error: "Failed to create suggestion" }
   }
 }
 
@@ -156,11 +137,12 @@ export async function createSuggestion(
  */
 export async function incrementSuggestionUsage(id: string): Promise<void> {
   try {
-    await prisma.itemSuggestion.update({
-      where: { id },
-      data: { usageCount: { increment: 1 } }
-    })
+    await sql`
+      UPDATE "ItemSuggestion"
+      SET "usageCount" = "usageCount" + 1
+      WHERE id = ${id}
+    `
   } catch (error) {
-    console.error('Failed to increment suggestion usage:', error)
+    console.error("Failed to increment suggestion usage:", error)
   }
 }

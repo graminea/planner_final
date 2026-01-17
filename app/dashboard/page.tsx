@@ -49,7 +49,7 @@ export default async function DashboardPage() {
               <Home className="w-4 h-4 text-primary" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg font-semibold text-foreground">NestList</h1>
+              <h1 className="text-lg font-semibold text-foreground">Nossa listinha momooooo</h1>
             </div>
           </div>
 

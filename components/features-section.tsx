@@ -42,7 +42,7 @@ export function FeaturesSection() {
             Tudo que você precisa para mobiliar sua casa
           </h2>
           <p className="text-lg text-muted-foreground">
-            De acompanhar o que você precisa até encontrar os melhores preços, o NestList tem você coberto.
+            De acompanhar o que você precisa até encontrar os melhores preços, o Nossa listinha momooooo tem você coberto.
           </p>
         </div>
 

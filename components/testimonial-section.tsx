@@ -30,7 +30,7 @@ export function TestimonialSection() {
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4 text-balance">
             Amado por casais em todo lugar
           </h2>
-          <p className="text-lg text-muted-foreground">Veja o que outros casais estão dizendo sobre o NestList.</p>
+          <p className="text-lg text-muted-foreground">Veja o que outros casais estão dizendo sobre o Nossa listinha momooooo.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">

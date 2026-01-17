@@ -8,7 +8,7 @@ const _dmSans = DM_Sans({ subsets: ["latin"] })
 const _dmSerif = DM_Serif_Display({ subsets: ["latin"], weight: "400" })
 
 export const metadata: Metadata = {
-  title: "NestList - Planejador de Compras para Casa",
+  title: "Nossa listinha momooooo - Planejador de Compras para Casa",
   description:
     "Acompanhe itens domésticos, compare preços e planeje sua mudança juntos. O app perfeito para casais montando seu lar.",
   generator: "v0.app",

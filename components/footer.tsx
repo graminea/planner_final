@@ -17,7 +17,7 @@ export function Footer() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                 <Home className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-semibold tracking-tight">NestList</span>
+              <span className="text-xl font-semibold tracking-tight">Nossa listinha momooooo</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm mb-6">
               O rastreador de compras de casa para casais. Planeje sua casa juntos, economize dinheiro e nunca compre em
@@ -42,7 +42,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} NestList. Todos os direitos reservados.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Nossa listinha momooooo. Todos os direitos reservados.</p>
           <p className="text-sm text-muted-foreground">Feito com amor para casais em todo lugar</p>
         </div>
       </div>

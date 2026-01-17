@@ -11,7 +11,7 @@ import { register } from '@/app/actions/auth'
 
 export function RegisterForm() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [nikname, setNikname] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +28,7 @@ export function RegisterForm() {
 
     setIsLoading(true)
 
-    const result = await register(email, password)
+    const result = await register(nikname, password)
 
     if (result.success) {
       router.push('/dashboard')
@@ -43,7 +43,7 @@ export function RegisterForm() {
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Criar Conta</CardTitle>
-        <CardDescription>Comece a rastrear suas compras de casa</CardDescription>
+        <CardDescription>Momo bora ve as coisa pra compra</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
@@ -54,13 +54,13 @@ export function RegisterForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="nikname">Nick</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="nikname"
+              type="text"
+              placeholder="Seu nick"
+              value={nikname}
+              onChange={(e) => setNikname(e.target.value)}
               required
               disabled={isLoading}
             />

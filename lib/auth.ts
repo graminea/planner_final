@@ -130,7 +130,7 @@ export async function getCurrentUser() {
       where: { id: session.userId },
       select: {
         id: true,
-        email: true,
+        nickname: true,
         createdAt: true,
       },
     })

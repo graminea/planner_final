@@ -115,7 +115,8 @@ export async function seedDefaultCategories(): Promise<{ success: boolean; error
       }))
     })
 
-    revalidatePath('/dashboard')
+    // Note: No revalidatePath here - this is called during render
+    // The page will naturally show the new data after this returns
     return { success: true }
   } catch (error) {
     console.error('Failed to seed categories:', error)

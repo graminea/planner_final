@@ -11,7 +11,7 @@ import { login } from '@/app/actions/auth'
 
 export function LoginForm() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -21,7 +21,7 @@ export function LoginForm() {
     setError(null)
     setIsLoading(true)
 
-    const result = await login(email, password)
+    const result = await login(nickname, password)
 
     if (result.success) {
       router.push('/dashboard')
@@ -47,13 +47,13 @@ export function LoginForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="nickname">Nick</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="nickname"
+              type="text"
+              placeholder="Seu nick"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
               required
               disabled={isLoading}
             />

@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button"
 import { logout } from "@/app/actions/auth"
 
 interface UserMenuProps {
-  email: string
+  nickname: string
 }
 
-export function UserMenu({ email }: UserMenuProps) {
+export function UserMenu({ nickname }: UserMenuProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -30,7 +30,7 @@ export function UserMenu({ email }: UserMenuProps) {
         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
           <User className="w-4 h-4 text-primary" />
         </div>
-        <span className="hidden md:block max-w-[150px] truncate">{email}</span>
+        <span className="hidden md:block max-w-[150px] truncate">{nickname}</span>
       </div>
 
       <Button variant="ghost" size="sm" onClick={handleLogout} disabled={isLoading} className="h-9 gap-1.5">

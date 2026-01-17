@@ -21,26 +21,26 @@ import {
  * Register a new user
  */
 export async function register(
-  email: string,
+  nickname: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Validate input
-    if (!email || !email.includes('@')) {
-      return { success: false, error: 'Invalid email address' }
+    if (nickname.length < 3 || nickname.length > 30) {
+      return { success: false, error: 'nickname invalido, deve ter ao menos 3 caracteres e no máximo 30 caracteres' }
     }
 
     if (!password || password.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters' }
+      return { success: false, error: 'Senha deve ter ao menos 6 caracteres' }
     }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { nickname: nickname.toLowerCase() },
     })
 
     if (existingUser) {
-      return { success: false, error: 'Email already registered' }
+      return { success: false, error: 'Esse nick já está em uso' }
     }
 
     // Hash password and create user
@@ -48,7 +48,7 @@ export async function register(
     
     const user = await prisma.user.create({
       data: {
-        email: email.toLowerCase(),
+        nickname: nickname.toLowerCase(),
         password: hashedPassword,
       },
     })
@@ -68,29 +68,29 @@ export async function register(
  * Login an existing user
  */
 export async function login(
-  email: string,
+  nickname: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Validate input
-    if (!email || !password) {
-      return { success: false, error: 'Email and password are required' }
+    if (!nickname || !password) {
+      return { success: false, error: 'Nick e senha são obrigatórios' }
     }
 
-    // Find user by email
+    // Find user by nickname
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { nickname: nickname.toLowerCase() },
     })
 
     if (!user) {
-      return { success: false, error: 'Invalid email or password' }
+      return { success: false, error: 'Nick ou senha inválidos' }
     }
 
     // Verify password
     const isValid = await verifyPassword(password, user.password)
 
     if (!isValid) {
-      return { success: false, error: 'Invalid email or password' }
+      return { success: false, error: 'Nick ou senha inválidos' }
     }
 
     // Create session and set cookie

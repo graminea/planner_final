@@ -68,7 +68,7 @@ export function PlannerContent({
   return (
     <>
       <div className="flex flex-col lg:flex-row gap-6 p-4 lg:p-6">
-        <aside className="hidden lg:block w-72 flex-shrink-0 space-y-4">
+        <aside className="hidden lg:block w-96 flex-shrink-0 space-y-4">
           <BudgetDisplay summary={budgetSummary} />
 
           <CategoryList
@@ -107,12 +107,14 @@ export function PlannerContent({
                   </span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">
-                <SheetHeader className="flex-shrink-0">
-                  <SheetTitle>Orçamento e Categorias</SheetTitle>
-                </SheetHeader>
-                <div className="flex-1 mt-4 overflow-y-auto overscroll-contain pb-safe">
-                  <div className="space-y-4 pb-8">
+              <SheetContent side="bottom" className="h-[85vh] max-h-[85vh] rounded-t-2xl flex flex-col p-0">
+                <div className="sticky top-0 z-10 bg-background border-b px-6 pt-6 pb-4 flex-shrink-0 pt-safe">
+                  <SheetHeader>
+                    <SheetTitle>Orçamento e Categorias</SheetTitle>
+                  </SheetHeader>
+                </div>
+                <div className="flex-1 overflow-y-auto overscroll-contain px-6">
+                  <div className="space-y-4 py-4 pb-8 pb-safe">
                     <BudgetDisplay summary={budgetSummary} />
                     <CategoryList
                       categories={categoriesWithItems}
@@ -185,7 +187,7 @@ export function PlannerContent({
         </div>
       </div>
 
-      <div className="lg:hidden fixed bottom-6 right-4 z-40">
+      <div className="lg:hidden fixed bottom-6 right-4 z-40 pb-safe">
         <Sheet open={showAddForm} onOpenChange={setShowAddForm}>
           <SheetTrigger asChild>
             <Button size="lg" className="h-14 w-14 rounded-full shadow-lg">
@@ -193,12 +195,14 @@ export function PlannerContent({
               <span className="sr-only">Adicionar item</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl flex flex-col">
-            <SheetHeader className="flex-shrink-0">
-              <SheetTitle>Adicionar Novo Item</SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 mt-4 overflow-y-auto overscroll-contain pb-safe">
-              <div className="pb-8">
+          <SheetContent side="bottom" className="h-[90vh] max-h-[90vh] rounded-t-2xl flex flex-col p-0">
+            <div className="sticky top-0 z-10 bg-background border-b px-6 pt-6 pb-4 flex-shrink-0 pt-safe">
+              <SheetHeader>
+                <SheetTitle>Adicionar Novo Item</SheetTitle>
+              </SheetHeader>
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6">
+              <div className="py-4 pb-8 pb-safe">
                 <ItemForm
                   categories={categories}
                   tags={tags}

@@ -67,7 +67,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <UserMenu email={user.email} />
+          <UserMenu nickname={user.nickname} />
         </div>
 
         <div className="sm:hidden px-4 pb-3">

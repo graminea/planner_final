@@ -32,15 +32,22 @@ export async function proxy(request: NextRequest) {
     try {
       const secret = process.env.JWT_SECRET
       if (!secret || secret.length < 32) {
-        console.error('JWT_SECRET missing or too short')
+        console.error('JWT_SECRET missing or too short in proxy')
+        // Clear invalid session cookie to prevent loops and continue
+        if (!isPublicRoute) {
+          const response = NextResponse.redirect(new URL('/login', request.url))
+          response.cookies.delete('session')
+          return response
+        }
         isAuthenticated = false
       } else {
         const secretKey = new TextEncoder().encode(secret)
         await jwtVerify(sessionToken, secretKey)
         isAuthenticated = true
       }
-    } catch {
-      // Token is invalid or expired
+    } catch (error) {
+      // Token is invalid or expired - clear the cookie
+      console.error('JWT verification failed:', error)
       isAuthenticated = false
     }
   }
@@ -52,6 +59,10 @@ export async function proxy(request: NextRequest) {
 
   // Redirect unauthenticated users to login (for protected routes)
   if (!isAuthenticated && !isPublicRoute) {
+    // Prevent redirect loops - if already going to login, just continue
+    if (pathname === '/login') {
+      return NextResponse.next()
+    }
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('from', pathname)
     return NextResponse.redirect(loginUrl)

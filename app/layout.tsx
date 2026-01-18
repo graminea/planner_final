@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { DM_Sans, DM_Serif_Display } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 const _dmSans = DM_Sans({ subsets: ["latin"] })
@@ -11,8 +12,7 @@ export const metadata: Metadata = {
   title: "Nossa listinha momooooo",
   description:
     "Acompanhe itens domésticos, compare preços e planeje sua mudança juntos. O app perfeito para casais montando seu lar.",
-  generator: "v0.app",
-}
+  }
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -29,9 +29,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+          themes={['light', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula']}
+        >
+          {children}
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

@@ -1,0 +1,184 @@
+/**
+ * Theme Definitions
+ * 
+ * Color themes for Nossa listinha momooooo
+ * Each theme defines CSS variables for consistent UI across the app
+ */
+
+/* Dark - Deep purple with light text */
+.dark {
+  --background: oklch(0.15 0.02 290);
+  --foreground: oklch(0.95 0.008 290);
+  --card: oklch(0.18 0.02 290);
+  --card-foreground: oklch(0.95 0.008 290);
+  --popover: oklch(0.18 0.02 290);
+  --popover-foreground: oklch(0.95 0.008 290);
+  --primary: oklch(0.7 0.15 290);
+  --primary-foreground: oklch(0.15 0.02 290);
+  --secondary: oklch(0.25 0.02 290);
+  --secondary-foreground: oklch(0.95 0.008 290);
+  --muted: oklch(0.25 0.02 290);
+  --muted-foreground: oklch(0.65 0.015 290);
+  --accent: oklch(0.6 0.12 320);
+  --accent-foreground: oklch(0.95 0.008 290);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.3 0.02 290);
+  --input: oklch(0.3 0.02 290);
+  --ring: oklch(0.7 0.15 290);
+  --chart-1: oklch(0.7 0.15 290);
+  --chart-2: oklch(0.6 0.12 320);
+  --chart-3: oklch(0.55 0.1 260);
+  --chart-4: oklch(0.65 0.1 340);
+  --chart-5: oklch(0.5 0.12 270);
+  --sidebar: oklch(0.18 0.02 290);
+  --sidebar-foreground: oklch(0.95 0.008 290);
+  --sidebar-primary: oklch(0.7 0.15 290);
+  --sidebar-primary-foreground: oklch(0.15 0.02 290);
+  --sidebar-accent: oklch(0.25 0.02 290);
+  --sidebar-accent-foreground: oklch(0.95 0.008 290);
+  --sidebar-border: oklch(0.3 0.02 290);
+  --sidebar-ring: oklch(0.7 0.15 290);
+  --success: oklch(0.6 0.15 145);
+  --success-foreground: oklch(0.15 0 0);
+  --warning: oklch(0.7 0.15 85);
+  --warning-foreground: oklch(0.15 0 0);
+}
+
+/* Tokyo Night - Dark blue/purple theme inspired by VSCode */
+.tokyo-night {
+  --background: oklch(0.15 0.015 250);
+  --foreground: oklch(0.85 0.01 250);
+  --card: oklch(0.18 0.02 250);
+  --card-foreground: oklch(0.85 0.01 250);
+  --popover: oklch(0.18 0.02 250);
+  --popover-foreground: oklch(0.85 0.01 250);
+  --primary: oklch(0.65 0.18 250);
+  --primary-foreground: oklch(0.15 0.015 250);
+  --secondary: oklch(0.25 0.02 250);
+  --secondary-foreground: oklch(0.85 0.01 250);
+  --muted: oklch(0.22 0.015 250);
+  --muted-foreground: oklch(0.55 0.015 250);
+  --accent: oklch(0.7 0.15 190);
+  --accent-foreground: oklch(0.15 0.015 250);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.95 0.01 25);
+  --border: oklch(0.28 0.02 250);
+  --input: oklch(0.28 0.02 250);
+  --ring: oklch(0.65 0.18 250);
+}
+
+/* Monokai - Vibrant dark theme */
+.monokai {
+  --background: oklch(0.16 0.01 290);
+  --foreground: oklch(0.92 0.008 100);
+  --card: oklch(0.19 0.015 290);
+  --card-foreground: oklch(0.92 0.008 100);
+  --popover: oklch(0.19 0.015 290);
+  --popover-foreground: oklch(0.92 0.008 100);
+  --primary: oklch(0.75 0.2 160);
+  --primary-foreground: oklch(0.16 0.01 290);
+  --secondary: oklch(0.28 0.02 290);
+  --secondary-foreground: oklch(0.92 0.008 100);
+  --muted: oklch(0.24 0.015 290);
+  --muted-foreground: oklch(0.6 0.01 100);
+  --accent: oklch(0.8 0.22 55);
+  --accent-foreground: oklch(0.16 0.01 290);
+  --destructive: oklch(0.65 0.25 15);
+  --destructive-foreground: oklch(0.98 0.005 15);
+  --border: oklch(0.3 0.02 290);
+  --input: oklch(0.3 0.02 290);
+  --ring: oklch(0.75 0.2 160);
+}
+
+/* Catppuccin - Warm brown pastel theme */
+.catppuccin {
+  --background: oklch(0.94 0.02 50);
+  --foreground: oklch(0.3 0.04 40);
+  --card: oklch(0.97 0.015 50);
+  --card-foreground: oklch(0.3 0.04 40);
+  --popover: oklch(0.97 0.015 50);
+  --popover-foreground: oklch(0.3 0.04 40);
+  --primary: oklch(0.55 0.12 35);
+  --primary-foreground: oklch(0.97 0.01 50);
+  --secondary: oklch(0.88 0.025 45);
+  --secondary-foreground: oklch(0.35 0.04 40);
+  --muted: oklch(0.9 0.02 48);
+  --muted-foreground: oklch(0.5 0.035 42);
+  --accent: oklch(0.65 0.1 60);
+  --accent-foreground: oklch(0.3 0.04 40);
+  --destructive: oklch(0.6 0.18 25);
+  --destructive-foreground: oklch(0.97 0.01 50);
+  --border: oklch(0.85 0.02 48);
+  --input: oklch(0.88 0.02 48);
+  --ring: oklch(0.55 0.12 35);
+}
+
+/* Nord - Cool blue-grey theme */
+.nord {
+  --background: oklch(0.2 0.015 220);
+  --foreground: oklch(0.88 0.01 220);
+  --card: oklch(0.23 0.02 220);
+  --card-foreground: oklch(0.88 0.01 220);
+  --popover: oklch(0.23 0.02 220);
+  --popover-foreground: oklch(0.88 0.01 220);
+  --primary: oklch(0.65 0.12 220);
+  --primary-foreground: oklch(0.95 0.005 220);
+  --secondary: oklch(0.3 0.02 220);
+  --secondary-foreground: oklch(0.88 0.01 220);
+  --muted: oklch(0.27 0.015 220);
+  --muted-foreground: oklch(0.6 0.012 220);
+  --accent: oklch(0.7 0.14 190);
+  --accent-foreground: oklch(0.2 0.015 220);
+  --destructive: oklch(0.58 0.18 25);
+  --destructive-foreground: oklch(0.95 0.005 25);
+  --border: oklch(0.32 0.02 220);
+  --input: oklch(0.32 0.02 220);
+  --ring: oklch(0.65 0.12 220);
+}
+
+/* Gruvbox - Warm retro theme */
+.gruvbox {
+  --background: oklch(0.22 0.03 70);
+  --foreground: oklch(0.85 0.02 70);
+  --card: oklch(0.26 0.035 70);
+  --card-foreground: oklch(0.85 0.02 70);
+  --popover: oklch(0.26 0.035 70);
+  --popover-foreground: oklch(0.85 0.02 70);
+  --primary: oklch(0.68 0.15 60);
+  --primary-foreground: oklch(0.22 0.03 70);
+  --secondary: oklch(0.32 0.04 70);
+  --secondary-foreground: oklch(0.85 0.02 70);
+  --muted: oklch(0.3 0.035 70);
+  --muted-foreground: oklch(0.6 0.025 70);
+  --accent: oklch(0.72 0.16 120);
+  --accent-foreground: oklch(0.22 0.03 70);
+  --destructive: oklch(0.6 0.2 30);
+  --destructive-foreground: oklch(0.95 0.01 30);
+  --border: oklch(0.35 0.04 70);
+  --input: oklch(0.35 0.04 70);
+  --ring: oklch(0.68 0.15 60);
+}
+
+/* Dracula - Purple/pink dark theme */
+.dracula {
+  --background: oklch(0.18 0.02 285);
+  --foreground: oklch(0.92 0.005 285);
+  --card: oklch(0.21 0.025 285);
+  --card-foreground: oklch(0.92 0.005 285);
+  --popover: oklch(0.21 0.025 285);
+  --popover-foreground: oklch(0.92 0.005 285);
+  --primary: oklch(0.68 0.2 320);
+  --primary-foreground: oklch(0.98 0.005 320);
+  --secondary: oklch(0.28 0.03 285);
+  --secondary-foreground: oklch(0.92 0.005 285);
+  --muted: oklch(0.25 0.025 285);
+  --muted-foreground: oklch(0.65 0.015 285);
+  --accent: oklch(0.75 0.18 145);
+  --accent-foreground: oklch(0.18 0.02 285);
+  --destructive: oklch(0.62 0.22 20);
+  --destructive-foreground: oklch(0.98 0.005 20);
+  --border: oklch(0.32 0.03 285);
+  --input: oklch(0.32 0.03 285);
+  --ring: oklch(0.68 0.2 320);
+}

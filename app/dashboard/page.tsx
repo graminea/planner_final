@@ -7,6 +7,7 @@
 import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth"
 import { UserMenu } from "@/components/auth/UserMenu"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 import { PlannerContent } from "./PlannerContent"
 import { Home } from "lucide-react"
 
@@ -67,7 +68,10 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <UserMenu nickname={user.nickname} />
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher />
+            <UserMenu nickname={user.nickname} />
+          </div>
         </div>
 
         <div className="sm:hidden px-4 pb-3">

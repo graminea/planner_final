@@ -49,7 +49,7 @@ export function UserMenu({ nickname }: UserMenuProps) {
           ) : isCouple ? (
             <Image 
               src="/couple/icon.jpg" 
-              alt="Nosso Amor" 
+              alt="Surpresinha bb" 
               fill
               className="object-cover"
             />

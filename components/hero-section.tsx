@@ -76,7 +76,7 @@ export function HeroSection() {
                 <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-primary shadow-2xl">
                   <Image 
                     src="/couple/main-photo.jpg" 
-                    alt="Nosso Amor" 
+                    alt="Surpresinha bb" 
                     fill
                     className="object-cover"
                   />

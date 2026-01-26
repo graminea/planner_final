@@ -89,7 +89,7 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
               <div className="w-12 h-12 relative rounded-full overflow-hidden border-2 border-primary">
                 <Image 
                   src="/couple/icon.jpg" 
-                  alt="Nosso Amor" 
+                  alt="Surpresinha bb" 
                   fill
                   className="object-cover"
                 />

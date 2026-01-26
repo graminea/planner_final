@@ -63,7 +63,7 @@ export function LoginForm() {
           <div className="relative w-[180px] h-[180px] rounded-full overflow-hidden border-4 border-primary shadow-2xl">
             <Image 
               src="/couple/login-photo.jpg" 
-              alt="Nosso Amor" 
+              alt="Surpresinha bb" 
               fill
               className="object-cover"
               priority

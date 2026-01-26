@@ -70,7 +70,7 @@ export function RegisterForm() {
           <div className="relative w-[160px] h-[160px] rounded-full overflow-hidden border-4 border-primary shadow-2xl">
             <Image 
               src="/couple/register-photo.jpg" 
-              alt="Nosso Amor" 
+              alt="Surpresinha bb" 
               fill
               className="object-cover"
               priority

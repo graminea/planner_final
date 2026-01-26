@@ -28,7 +28,7 @@ export function DashboardHeader() {
         ) : isCouple ? (
           <Image 
             src="/couple/header-logo.jpg" 
-            alt="Nosso Amor" 
+            alt="Surpresinha bb" 
             fill
             className="object-cover"
           />

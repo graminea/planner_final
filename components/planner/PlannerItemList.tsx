@@ -168,7 +168,7 @@ export function PlannerItemList({ items, categories, filters, sort }: PlannerIte
             <div className="w-24 h-24 mx-auto mb-4 relative rounded-full overflow-hidden border-4 border-primary/30 photo-frame">
               <Image 
                 src="/couple/main-photo.jpg" 
-                alt="Nosso Amor" 
+                alt="Surpresinha bb" 
                 fill
                 className="opacity-50 object-cover"
               />

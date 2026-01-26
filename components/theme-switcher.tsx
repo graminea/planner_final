@@ -29,7 +29,7 @@ const ALL_THEMES = [
   { value: 'gruvbox', label: 'Gruvbox', icon: TreePine },
   { value: 'dracula', label: 'Dracula', icon: Skull },
   { value: 'figueira', label: 'Figueira Porra', icon: Shield },
-  { value: 'couple', label: 'Nosso Amor', icon: Heart, restrictedTo: ['graminea', 'analindamomo'] },
+  { value: 'couple', label: 'Surpresinha bb', icon: Heart, restrictedTo: ['graminea', 'analindamomo'] },
   { value: 'system', label: 'Sistema', icon: Monitor },
 ]
 

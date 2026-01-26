@@ -76,7 +76,27 @@ export function CoupleWatermark() {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
-      {/* Photo collage */}
+      {/* Mobile: Single full-background photo */}
+      <div className="lg:hidden absolute inset-0">
+        <div className="w-full h-full relative">
+          <Image
+            src="/couple/photo-1.jpg"
+            alt=""
+            fill
+            className="object-cover opacity-15 blur-[2px]"
+          />
+          {/* Romantic gradient overlay */}
+          <div 
+            className="absolute inset-0" 
+            style={{
+              background: 'linear-gradient(135deg, oklch(0.65 0.2 350 / 0.15) 0%, oklch(0.7 0.18 20 / 0.1) 100%)',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Desktop: Full photo collage */}
+      <div className="hidden lg:block">
       {PHOTO_POSITIONS.map((pos, index) => {
         const photoIndex = index % COUPLE_PHOTOS.length
         const photo = COUPLE_PHOTOS[photoIndex]
@@ -84,7 +104,7 @@ export function CoupleWatermark() {
         return (
           <div
             key={index}
-            className={`absolute rounded-xl overflow-hidden shadow-2xl photo-frame ${index >= 4 ? 'hidden lg:block' : ''}`}
+            className="absolute rounded-xl overflow-hidden shadow-2xl photo-frame"
             style={{
               top: pos.top,
               bottom: pos.bottom,
@@ -115,6 +135,7 @@ export function CoupleWatermark() {
           </div>
         )
       })}
+      </div>
       
       {/* Soft vignette overlay for depth */}
       <div 

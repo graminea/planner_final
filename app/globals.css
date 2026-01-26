@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @custom-variant figueira (&:is(.figueira *));
+@custom-variant couple (&:is(.couple *));
 @custom-variant dark (&:is(.dark *));
 @custom-variant tokyo-night (&:is(.tokyo-night *));
 @custom-variant monokai (&:is(.monokai *));
@@ -371,6 +372,168 @@
   --success-foreground: oklch(0.99 0.005 145);
   --warning: oklch(0.72 0.25 85);
   --warning-foreground: oklch(0.08 0 0);
+}
+
+/* Couple Theme - Romantic rose/pink theme with photo collage background */
+.couple {
+  --background: oklch(0.12 0.025 350);
+  --foreground: oklch(0.98 0.008 350);
+  --card: oklch(0.16 0.03 350);
+  --card-foreground: oklch(0.98 0.008 350);
+  --popover: oklch(0.16 0.03 350);
+  --popover-foreground: oklch(0.98 0.008 350);
+  --primary: oklch(0.65 0.2 350);
+  --primary-foreground: oklch(0.99 0.005 350);
+  --secondary: oklch(0.22 0.035 350);
+  --secondary-foreground: oklch(0.95 0.01 350);
+  --muted: oklch(0.18 0.025 350);
+  --muted-foreground: oklch(0.72 0.02 350);
+  --accent: oklch(0.7 0.18 20);
+  --accent-foreground: oklch(0.12 0.025 350);
+  --destructive: oklch(0.52 0.22 25);
+  --destructive-foreground: oklch(0.99 0.005 25);
+  --border: oklch(0.3 0.035 350);
+  --input: oklch(0.3 0.035 350);
+  --ring: oklch(0.65 0.2 350);
+  --chart-1: oklch(0.65 0.2 350);
+  --chart-2: oklch(0.7 0.18 20);
+  --chart-3: oklch(0.75 0.15 330);
+  --chart-4: oklch(0.55 0.18 350);
+  --chart-5: oklch(0.8 0.12 10);
+  --sidebar: oklch(0.16 0.03 350);
+  --sidebar-foreground: oklch(0.98 0.008 350);
+  --sidebar-primary: oklch(0.65 0.2 350);
+  --sidebar-primary-foreground: oklch(0.99 0.005 350);
+  --sidebar-accent: oklch(0.22 0.035 350);
+  --sidebar-accent-foreground: oklch(0.95 0.01 350);
+  --sidebar-border: oklch(0.3 0.035 350);
+  --sidebar-ring: oklch(0.65 0.2 350);
+  --success: oklch(0.62 0.18 160);
+  --success-foreground: oklch(0.99 0.005 160);
+  --warning: oklch(0.72 0.2 85);
+  --warning-foreground: oklch(0.12 0 0);
+}
+
+/* Enhanced Couple theme effects */
+.couple .bg-card {
+  background: linear-gradient(135deg, oklch(0.16 0.03 350 / 0.8) 0%, oklch(0.19 0.035 350 / 0.8) 100%);
+  border: 1px solid oklch(0.3 0.035 350);
+  box-shadow: 0 4px 20px oklch(0.08 0.02 350);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.couple .bg-background {
+  background: oklch(0.12 0.025 350 / 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.couple .bg-primary {
+  background: linear-gradient(135deg, oklch(0.65 0.2 350 / 0.9) 0%, oklch(0.7 0.22 355 / 0.9) 100%);
+  box-shadow: 0 2px 15px oklch(0.4 0.15 350);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.couple .border-primary {
+  border-color: oklch(0.7 0.22 350);
+  box-shadow: 0 0 10px oklch(0.4 0.15 350);
+}
+
+.couple button:hover.bg-primary {
+  background: linear-gradient(135deg, oklch(0.7 0.22 350 / 0.95) 0%, oklch(0.75 0.24 355 / 0.95) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px oklch(0.4 0.18 350);
+  transition: all 0.3s ease;
+}
+
+.couple .text-primary {
+  color: oklch(0.72 0.22 350);
+  text-shadow: 0 1px 3px oklch(0.3 0.1 350);
+}
+
+.couple .animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, coupleGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes coupleGlow {
+  0% {
+    filter: drop-shadow(0 0 5px oklch(0.4 0.15 350));
+  }
+  100% {
+    filter: drop-shadow(0 0 15px oklch(0.5 0.2 350));
+  }
+}
+
+.couple .bg-gradient-to-br {
+  background: linear-gradient(to bottom right, 
+    oklch(0.16 0.03 350) 0%, 
+    oklch(0.12 0.025 350) 50%, 
+    oklch(0.18 0.035 350) 100%);
+}
+
+.couple input:focus {
+  box-shadow: 0 0 0 3px oklch(0.4 0.15 350 / 0.3), 0 0 10px oklch(0.4 0.15 350 / 0.2);
+  border-color: oklch(0.7 0.22 350);
+}
+
+.couple .card-hover:hover {
+  background: linear-gradient(135deg, oklch(0.19 0.035 350 / 0.85) 0%, oklch(0.22 0.04 350 / 0.85) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px oklch(0.08 0.02 350), 0 0 20px oklch(0.3 0.1 350);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: all 0.3s ease;
+}
+
+.couple .text-accent {
+  background: linear-gradient(135deg, oklch(0.7 0.18 20), oklch(0.75 0.2 30));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.couple .relative.z-10 {
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+}
+
+.couple main {
+  backdrop-filter: blur(0.5px);
+  -webkit-backdrop-filter: blur(0.5px);
+}
+
+.couple .bg-muted {
+  background: oklch(0.18 0.025 350 / 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.couple .border.bg-card {
+  background: linear-gradient(135deg, oklch(0.16 0.03 350 / 0.85) 0%, oklch(0.19 0.035 350 / 0.85) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.couple .photo-frame {
+  animation: photoFloat 8s ease-in-out infinite;
+}
+
+@keyframes photoFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-8px) rotate(0.5deg); }
+  50% { transform: translateY(-12px) rotate(0deg); }
+  75% { transform: translateY(-4px) rotate(-0.5deg); }
+}
+
+.couple .heart-pulse {
+  animation: heartPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes heartPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 /* Enhanced Figueirense theme effects */

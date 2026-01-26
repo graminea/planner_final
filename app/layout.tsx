@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next"
 import { DM_Sans, DM_Serif_Display } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
+import { FigueiraWatermark } from "@/components/FigueiraWatermark"
+import { CoupleWatermark } from "@/components/CoupleWatermark"
 import "./globals.css"
 
 const _dmSans = DM_Sans({ subsets: ["latin"] })
@@ -36,8 +38,10 @@ export default function RootLayout({
           defaultTheme="light"
           enableSystem
           disableTransitionOnChange
-          themes={['light', 'figueira', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula']}
+          themes={['light', 'figueira', 'couple', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula']}
         >
+          <FigueiraWatermark />
+          <CoupleWatermark />
           {children}
         </ThemeProvider>
         <Analytics />

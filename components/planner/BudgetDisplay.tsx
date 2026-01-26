@@ -34,6 +34,7 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
+  const isCouple = mounted && theme === 'couple'
 
   useEffect(() => {
     setMounted(true)
@@ -82,6 +83,15 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
                   alt="Figueirense" 
                   fill
                   className="object-contain"
+                />
+              </div>
+            ) : isCouple ? (
+              <div className="w-12 h-12 relative rounded-full overflow-hidden border-2 border-primary">
+                <Image 
+                  src="/couple/icon.jpg" 
+                  alt="Nosso Amor" 
+                  fill
+                  className="object-cover"
                 />
               </div>
             ) : (

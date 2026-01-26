@@ -16,6 +16,7 @@ export function Footer() {
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
+  const isCouple = mounted && theme === 'couple'
 
   useEffect(() => {
     setMounted(true)
@@ -34,6 +35,13 @@ export function Footer() {
                     alt="Figueirense" 
                     fill
                     className="text-primary-foreground object-contain p-1"
+                  />
+                ) : isCouple ? (
+                  <Image 
+                    src="/couple/icon.jpg" 
+                    alt="Nosso Amor" 
+                    fill
+                    className="object-cover"
                   />
                 ) : (
                   <Home className="h-5 w-5 text-primary-foreground" />

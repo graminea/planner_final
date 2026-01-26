@@ -11,6 +11,7 @@ export function HeroSection() {
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
+  const isCouple = mounted && theme === 'couple'
 
   useEffect(() => {
     setMounted(true)
@@ -66,6 +67,18 @@ export function HeroSection() {
                     alt="Figueirense" 
                     fill
                     className="object-contain drop-shadow-2xl"
+                  />
+                </div>
+              </div>
+            )}
+            {isCouple && (
+              <div className="absolute -top-6 -right-6 z-20 photo-frame">
+                <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-primary shadow-2xl">
+                  <Image 
+                    src="/couple/main-photo.jpg" 
+                    alt="Nosso Amor" 
+                    fill
+                    className="object-cover"
                   />
                 </div>
               </div>

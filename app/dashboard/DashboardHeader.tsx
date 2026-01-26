@@ -9,6 +9,7 @@ export function DashboardHeader() {
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
+  const isCouple = mounted && theme === 'couple'
 
   useEffect(() => {
     setMounted(true)
@@ -24,8 +25,15 @@ export function DashboardHeader() {
             fill
             className="text-primary object-contain p-1"
           />
+        ) : isCouple ? (
+          <Image 
+            src="/couple/header-logo.jpg" 
+            alt="Nosso Amor" 
+            fill
+            className="object-cover"
+          />
         ) : null}
-        <Home className={`w-4 h-4 text-primary fallback-icon ${isFigueira ? 'hidden' : ''}`} />
+        <Home className={`w-4 h-4 text-primary fallback-icon ${isFigueira || isCouple ? 'hidden' : ''}`} />
       </div>
       <div>
         <h1 className="text-lg font-semibold">Planejador de Casa</h1>

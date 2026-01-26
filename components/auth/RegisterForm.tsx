@@ -22,6 +22,7 @@ export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
+  const isCouple = mounted && theme === 'couple'
 
   useEffect(() => {
     setMounted(true)
@@ -59,6 +60,19 @@ export function RegisterForm() {
               alt="Figueirense Mascot" 
               fill
               className="drop-shadow-2xl object-contain"
+              priority
+            />
+          </div>
+        </div>
+      )}
+      {isCouple && (
+        <div className="mb-6 flex justify-center photo-frame">
+          <div className="relative w-[160px] h-[160px] rounded-full overflow-hidden border-4 border-primary shadow-2xl">
+            <Image 
+              src="/couple/register-photo.jpg" 
+              alt="Nosso Amor" 
+              fill
+              className="object-cover"
               priority
             />
           </div>

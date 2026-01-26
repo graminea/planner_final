@@ -108,6 +108,7 @@ export function PlannerItemList({ items, categories, filters, sort }: PlannerIte
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
+  const isCouple = mounted && theme === 'couple'
 
   useEffect(() => {
     setMounted(true)
@@ -161,6 +162,15 @@ export function PlannerItemList({ items, categories, filters, sort }: PlannerIte
                 alt="Figueirense Mascot" 
                 fill
                 className="opacity-50 object-contain"
+              />
+            </div>
+          ) : isCouple ? (
+            <div className="w-24 h-24 mx-auto mb-4 relative rounded-full overflow-hidden border-4 border-primary/30 photo-frame">
+              <Image 
+                src="/couple/main-photo.jpg" 
+                alt="Nosso Amor" 
+                fill
+                className="opacity-50 object-cover"
               />
             </div>
           ) : (

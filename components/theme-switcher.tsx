@@ -9,7 +9,7 @@
 
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
-import { Moon, Sun, Monitor, Palette, JapaneseYen, Coffee, Snowflake, TreePine, Skull, Code, Shield } from 'lucide-react'
+import { Moon, Sun, Monitor, Palette, JapaneseYen, Coffee, Snowflake, TreePine, Skull, Code, Shield, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -29,6 +29,7 @@ const THEMES = [
   { value: 'gruvbox', label: 'Gruvbox', icon: TreePine },
   { value: 'dracula', label: 'Dracula', icon: Skull },
   { value: 'figueira', label: 'Figueira Porra', icon: Shield },
+  { value: 'couple', label: 'Nosso Amor', icon: Heart },
   { value: 'system', label: 'Sistema', icon: Monitor },
 ]
 
@@ -94,7 +95,7 @@ export function ThemeToggle() {
   }
 
   const cycleTheme = () => {
-    const themeOrder = ['light', 'figueira', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula']
+    const themeOrder = ['light', 'figueira', 'couple', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula']
     const currentIndex = themeOrder.indexOf(theme || 'light')
     const nextIndex = (currentIndex + 1) % themeOrder.length
     setTheme(themeOrder[nextIndex])

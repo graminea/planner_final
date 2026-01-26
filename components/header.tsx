@@ -12,6 +12,7 @@ export function Header() {
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
+  const isCouple = mounted && theme === 'couple'
 
   useEffect(() => {
     setMounted(true)
@@ -30,8 +31,15 @@ export function Header() {
                   fill
                   className="text-primary-foreground object-contain p-1"
                 />
+              ) : isCouple ? (
+                <Image 
+                  src="/couple/header-logo.jpg" 
+                  alt="Nosso Amor" 
+                  fill
+                  className="object-cover"
+                />
               ) : null}
-              <Home className={`h-5 w-5 text-primary-foreground fallback-icon ${isFigueira ? 'hidden' : ''}`} />
+              <Home className={`h-5 w-5 text-primary-foreground fallback-icon ${isFigueira || isCouple ? 'hidden' : ''}`} />
             </div>
             <span className="text-xl font-semibold tracking-tight">Nossa listinha momooooo</span>
           </Link>

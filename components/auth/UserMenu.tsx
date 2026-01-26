@@ -23,6 +23,7 @@ export function UserMenu({ nickname }: UserMenuProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
+  const isCouple = mounted && theme === 'couple'
 
   useEffect(() => {
     setMounted(true)
@@ -44,6 +45,13 @@ export function UserMenu({ nickname }: UserMenuProps) {
               alt="Avatar" 
               fill
               className="object-contain p-0.5"
+            />
+          ) : isCouple ? (
+            <Image 
+              src="/couple/icon.jpg" 
+              alt="Nosso Amor" 
+              fill
+              className="object-cover"
             />
           ) : (
             <User className="w-4 h-4 text-primary" />

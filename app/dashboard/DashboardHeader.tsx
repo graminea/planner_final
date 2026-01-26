@@ -36,7 +36,7 @@ export function DashboardHeader() {
         <Home className={`w-4 h-4 text-primary fallback-icon ${isFigueira || isCouple ? 'hidden' : ''}`} />
       </div>
       <div>
-        <h1 className="text-lg font-semibold">Planejador de Casa</h1>
+        <h1 className="text-lg font-semibold">Nossa listinha momo</h1>
       </div>
     </div>
   )

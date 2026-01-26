@@ -44,7 +44,7 @@ export function RegisterForm() {
     if (result.success) {
       router.push('/dashboard')
     } else {
-      setError(result.error || 'Registration failed')
+      setError(result.error || 'Moio num foi')
     }
 
     setIsLoading(false)
@@ -81,7 +81,7 @@ export function RegisterForm() {
       <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Criar Conta</CardTitle>
-        <CardDescription>Momo bora ve as coisa pra compra</CardDescription>
+        <CardDescription>Momo bora ve as coisa pra compra</CardDescription> 
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
@@ -92,7 +92,7 @@ export function RegisterForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="nikname">Nick</Label>
+            <Label htmlFor="nikname">Nicknames</Label>
             <Input
               id="nikname"
               type="text"
@@ -132,7 +132,7 @@ export function RegisterForm() {
 
         <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Criando conta...' : 'Criar Conta'}
+            {isLoading ? 'Criando conta hihihihi...' : 'Criar Conta'}
           </Button>
           <p className="text-sm text-muted-foreground">
             Já tem uma conta?{' '}

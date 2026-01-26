@@ -102,7 +102,7 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
             <div>
               <h3 className="font-medium mb-1">Defina seu orçamento total</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Quanto você tem disponível para gastar?
+                Quanto moneys nois tem mor?
               </p>
               
               {error && (
@@ -247,7 +247,7 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
           </div>
         </div>
 
-        {/* Unallocated Budget Indicator */}
+        {/* Unallocated Budget Alert */}
         {unallocated > 0 && (
           <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
@@ -314,13 +314,13 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
     const value = allocationValue ? parseFloat(allocationValue) : null
     
     if (value !== null && value < 0) {
-      setError("Valor deve ser positivo")
+      setError("Valor deve ser positivo bb duuuur")
       setIsSaving(false)
       return
     }
 
     if (value !== null && value > maxAllocation) {
-      setError(`Máximo disponível: R$${maxAllocation.toFixed(0)}`)
+      setError(`So tem mais isso affs veyr: R$${maxAllocation.toFixed(0)}`)
       setIsSaving(false)
       return
     }

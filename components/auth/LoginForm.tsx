@@ -73,8 +73,8 @@ export function LoginForm() {
       )}
       <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Bem-vindo de Volta</CardTitle>
-        <CardDescription>Entre para acessar sua lista de casa</CardDescription>
+        <CardTitle>Ebaaaaaaaa</CardTitle>
+        <CardDescription>Entra pra acessar nossa listinha momo</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
@@ -85,7 +85,7 @@ export function LoginForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="nickname">Nick</Label>
+            <Label htmlFor="nickname">Nickenames</Label>
             <Input
               id="nickname"
               type="text"

@@ -86,7 +86,7 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
           <div className="p-3 mb-2 rounded-lg bg-muted/50 space-y-2">
             <Input
               type="text"
-              placeholder="Nome da categoria"
+              placeholder="Nome da catigoria vai ser uguê"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               className="h-9"

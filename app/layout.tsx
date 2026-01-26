@@ -11,9 +11,9 @@ const _dmSans = DM_Sans({ subsets: ["latin"] })
 const _dmSerif = DM_Serif_Display({ subsets: ["latin"], weight: "400" })
 
 export const metadata: Metadata = {
-  title: "Nossa listinha momooooo",
+  title: "Nossa listinha momo",
   description:
-    "Acompanhe itens domésticos, compare preços e planeje sua mudança juntos. O app perfeito para casais montando seu lar.",
+    "Planejar hihihihihihihi casa casa casa",
   }
 
 export const viewport: Viewport = {

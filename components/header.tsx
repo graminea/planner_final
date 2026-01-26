@@ -29,11 +29,6 @@ export function Header() {
                   alt="Figueirense" 
                   fill
                   className="text-primary-foreground object-contain p-1"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                    const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon')
-                    if (fallback) fallback.classList.remove('hidden')
-                  }}
                 />
               ) : null}
               <Home className={`h-5 w-5 text-primary-foreground fallback-icon ${isFigueira ? 'hidden' : ''}`} />

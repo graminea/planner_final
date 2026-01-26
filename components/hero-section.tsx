@@ -5,6 +5,7 @@ import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 import { ArrowRight, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
+import { Button } from "@/components/ui/button"
 
 export function HeroSection() {
   const { theme } = useTheme()

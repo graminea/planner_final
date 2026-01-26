@@ -23,11 +23,6 @@ export function DashboardHeader() {
             alt="Figueirense" 
             fill
             className="text-primary object-contain p-1"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-              const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon')
-              if (fallback) fallback.classList.remove('hidden')
-            }}
           />
         ) : null}
         <Home className={`w-4 h-4 text-primary fallback-icon ${isFigueira ? 'hidden' : ''}`} />

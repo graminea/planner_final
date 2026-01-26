@@ -94,7 +94,7 @@ export function ThemeToggle() {
   }
 
   const cycleTheme = () => {
-    const themeOrder = ['light', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula', 'figueira']
+    const themeOrder = ['light', 'figueira', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula']
     const currentIndex = themeOrder.indexOf(theme || 'light')
     const nextIndex = (currentIndex + 1) % themeOrder.length
     setTheme(themeOrder[nextIndex])

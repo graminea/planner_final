@@ -32,13 +32,6 @@ export function filterItems(items: Item[], filters: ItemFilters): Item[] {
       return false
     }
 
-    // Filter by tags (item must have at least one of the specified tags)
-    if (filters.tagIds && filters.tagIds.length > 0) {
-      const itemTagIds = item.tags.map(t => t.id)
-      const hasMatchingTag = filters.tagIds.some(tagId => itemTagIds.includes(tagId))
-      if (!hasMatchingTag) return false
-    }
-
     // Filter by search term
     if (filters.search) {
       const searchLower = filters.search.toLowerCase()
@@ -60,7 +53,6 @@ export function hasActiveFilters(filters: ItemFilters): boolean {
     filters.isBought !== undefined ||
     filters.categoryId !== undefined ||
     filters.priority !== undefined ||
-    (filters.tagIds && filters.tagIds.length > 0) ||
     (filters.search && filters.search.length > 0)
   )
 }
@@ -73,14 +65,12 @@ export function getFilterCounts(items: Item[]): {
   notBought: number
   byCategory: Record<string, number>
   byPriority: Record<number, number>
-  byTag: Record<string, number>
 } {
   const counts = {
     bought: 0,
     notBought: 0,
     byCategory: {} as Record<string, number>,
-    byPriority: { 1: 0, 2: 0, 3: 0 },
-    byTag: {} as Record<string, number>
+    byPriority: { 1: 0, 2: 0, 3: 0 }
   }
 
   items.forEach(item => {
@@ -95,11 +85,6 @@ export function getFilterCounts(items: Item[]): {
     // Priority
     const priority = item.priority as 1 | 2 | 3
     counts.byPriority[priority] = (counts.byPriority[priority] || 0) + 1
-
-    // Tags
-    item.tags.forEach(tag => {
-      counts.byTag[tag.id] = (counts.byTag[tag.id] || 0) + 1
-    })
   })
 
   return counts

@@ -14,7 +14,6 @@ import { DashboardHeader } from "./DashboardHeader"
 // Data fetching
 import { getCategories, getCategoriesWithItems } from "@/app/actions/categories"
 import { getItems } from "@/app/actions/items-new"
-import { getTags } from "@/app/actions/tags"
 import { getBudgetSummary } from "@/app/actions/budget"
 import { initializeUserData } from "@/app/actions/seed"
 
@@ -29,11 +28,10 @@ export default async function DashboardPage() {
   await initializeUserData()
 
   // Fetch all data in parallel
-  const [categories, categoriesWithItems, items, tags, budgetSummary] = await Promise.all([
+  const [categories, categoriesWithItems, items, budgetSummary] = await Promise.all([
     getCategories(),
     getCategoriesWithItems(),
     getItems({}),
-    getTags(),
     getBudgetSummary(),
   ])
 
@@ -82,7 +80,6 @@ export default async function DashboardPage() {
           categories={categories}
           categoriesWithItems={categoriesWithItems}
           initialItems={items}
-          tags={tags}
           budgetSummary={budgetSummary}
         />
       </main>

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@custom-variant figueira (&:is(.figueira *));
 @custom-variant dark (&:is(.dark *));
 @custom-variant tokyo-night (&:is(.tokyo-night *));
 @custom-variant monokai (&:is(.monokai *));
@@ -8,7 +9,6 @@
 @custom-variant nord (&:is(.nord *));
 @custom-variant gruvbox (&:is(.gruvbox *));
 @custom-variant dracula (&:is(.dracula *));
-@custom-variant figueira (&:is(.figueira *));
 
 :root {
   /* Calm purple-based color scheme - soft lavender with deep purple accents */

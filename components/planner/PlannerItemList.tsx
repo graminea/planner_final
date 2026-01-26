@@ -8,11 +8,11 @@ import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useEffect } from "react"
-import { ChevronDown, ChevronUp, Pencil, Trash2, Link2, ShoppingBag } from "lucide-react"
+import Image from "next/image"
+import { ChevronDown, ChevronUp, Pencil, Trash2, Link2, ShoppingBag, DollarSign, X } from "lucide-react"
 import type { Item, ItemFilters, ItemSort } from "@/app/actions/items-new"
 import type { Category } from "@/app/actions/categories"
-import type { Tag } from "@/app/actions/tags"
-import { toggleItemBought, deleteItem } from "@/app/actions/items-new"
+import { toggleItemBought, deleteItem, updateItemBoughtPrice } from "@/app/actions/items-new"
 import { ItemForm } from "./ItemForm"
 import { ItemLinkEditor } from "./ItemLinkEditor"
 import { filterAndSortItems, PRIORITY_LABELS } from "@/lib/filters"
@@ -20,17 +20,90 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
 interface PlannerItemListProps {
   items: Item[]
   categories: Category[]
-  tags: Tag[]
   filters: ItemFilters
   sort: ItemSort
 }
 
-export function PlannerItemList({ items, categories, tags, filters, sort }: PlannerItemListProps) {
+// Price Dialog Component
+function PriceDialog({ 
+  item, 
+  onConfirm, 
+  onCancel 
+}: { 
+  item: Item
+  onConfirm: (price: number) => void
+  onCancel: () => void 
+}) {
+  const defaultPrice = item.plannedPrice || item.selectedLink?.price || 0
+  const [price, setPrice] = useState(defaultPrice.toFixed(2))
+
+  const handleConfirm = () => {
+    const numPrice = parseFloat(price)
+    if (!isNaN(numPrice) && numPrice >= 0) {
+      onConfirm(numPrice)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Quanto você pagou?
+            </h3>
+            <Button variant="ghost" size="icon" onClick={onCancel}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <p className="text-sm text-muted-foreground mb-4">
+            <span className="font-medium">{item.name}</span>
+          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="boughtPrice">Preço pago (R$)</Label>
+            <Input
+              id="boughtPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00"
+              className="text-lg"
+              autoFocus
+            />
+            {item.plannedPrice && (
+              <p className="text-xs text-muted-foreground">
+                Preço planejado: R${item.plannedPrice.toFixed(2)}
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <Button variant="outline" className="flex-1" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button className="flex-1" onClick={handleConfirm}>
+              Confirmar Compra
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export function PlannerItemList({ items, categories, filters, sort }: PlannerItemListProps) {
   const router = useRouter()
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -44,9 +117,30 @@ export function PlannerItemList({ items, categories, tags, filters, sort }: Plan
 
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [buyingItem, setBuyingItem] = useState<Item | null>(null)
+  const [editingPriceItemId, setEditingPriceItemId] = useState<string | null>(null)
 
-  const handleToggleBought = async (itemId: string) => {
-    await toggleItemBought(itemId)
+  const handleToggleBought = async (item: Item) => {
+    if (item.isBought) {
+      // Unmarking as bought - just toggle
+      await toggleItemBought(item.id)
+      router.refresh()
+    } else {
+      // Marking as bought - show price dialog
+      setBuyingItem(item)
+    }
+  }
+
+  const handleConfirmBuy = async (price: number) => {
+    if (!buyingItem) return
+    await toggleItemBought(buyingItem.id, price)
+    setBuyingItem(null)
+    router.refresh()
+  }
+
+  const handleUpdateBoughtPrice = async (itemId: string, price: number) => {
+    await updateItemBoughtPrice(itemId, price)
+    setEditingPriceItemId(null)
     router.refresh()
   }
 
@@ -81,72 +175,82 @@ export function PlannerItemList({ items, categories, tags, filters, sort }: Plan
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Mostrando {displayedItems.length} de {items.length} itens
-      </p>
+    <>
+      {/* Price Dialog */}
+      {buyingItem && (
+        <PriceDialog
+          item={buyingItem}
+          onConfirm={handleConfirmBuy}
+          onCancel={() => setBuyingItem(null)}
+        />
+      )}
 
-      {displayedItems.map((item) => {
-        const isExpanded = expandedItemId === item.id
-        const isEditing = editingItemId === item.id
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Mostrando {displayedItems.length} de {items.length} itens
+        </p>
 
-        return (
-          <Card key={item.id} className={cn("transition-all duration-200", item.isBought && "opacity-70")}>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                {/* Checkbox */}
-                <Checkbox
-                  checked={item.isBought}
-                  onCheckedChange={() => handleToggleBought(item.id)}
-                  className="mt-1 h-5 w-5 rounded-full"
-                />
+        {displayedItems.map((item) => {
+          const isExpanded = expandedItemId === item.id
+          const isEditing = editingItemId === item.id
+          const isEditingPrice = editingPriceItemId === item.id
 
-                {/* Main content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3
-                        className={cn(
-                          "font-medium text-foreground",
-                          item.isBought && "line-through text-muted-foreground",
-                        )}
-                      >
-                        {item.name}
-                      </h3>
+          return (
+            <Card key={item.id} className={cn("transition-all duration-200", item.isBought && "opacity-70")}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  {/* Checkbox */}
+                  <Checkbox
+                    checked={item.isBought}
+                    onCheckedChange={() => handleToggleBought(item)}
+                    className="mt-1 h-5 w-5 rounded-full"
+                  />
 
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        {item.category && (
-                          <span className="text-xs text-muted-foreground">
-                            {item.category.icon} {item.category.name}
-                          </span>
-                        )}
-                        <Badge variant="outline" className="text-xs h-5">
-                          {PRIORITY_LABELS[item.priority]}
-                        </Badge>
-                        {item.tags.map((tag) => (
-                          <Badge key={tag.id} variant="secondary" className="text-xs h-5">
-                            {tag.name}
+                  {/* Main content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3
+                          className={cn(
+                            "font-medium text-foreground",
+                            item.isBought && "line-through text-muted-foreground",
+                          )}
+                        >
+                          {item.name}
+                        </h3>
+
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          {item.category && (
+                            <span className="text-xs text-muted-foreground">
+                              {item.category.icon} {item.category.name}
+                            </span>
+                          )}
+                          <Badge variant="outline" className="text-xs h-5">
+                            {PRIORITY_LABELS[item.priority]}
                           </Badge>
-                        ))}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="text-right flex-shrink-0">
-                      {item.isBought && item.boughtPrice ? (
-                        <div>
-                          <div className="font-semibold text-primary">R${item.boughtPrice.toFixed(2)}</div>
-                          <div className="text-xs text-muted-foreground">Pago</div>
-                        </div>
-                      ) : item.selectedLink ? (
-                        <div>
-                          <div className="font-semibold">R${item.selectedLink.price.toFixed(2)}</div>
-                          <div className="text-xs text-muted-foreground truncate max-w-[80px]">
-                            {item.selectedLink.store}
+                      <div className="text-right flex-shrink-0">
+                        {item.isBought && item.boughtPrice ? (
+                          <div 
+                            className="cursor-pointer hover:bg-accent/50 p-1 rounded -m-1"
+                            onClick={() => setEditingPriceItemId(isEditingPrice ? null : item.id)}
+                            title="Clique para editar o preço"
+                          >
+                            <div className="font-semibold text-primary">R${item.boughtPrice.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">Pago ✓</div>
                           </div>
-                        </div>
-                      ) : item.plannedPrice ? (
-                        <div>
-                          <div className="font-semibold">R${item.plannedPrice.toFixed(2)}</div>
+                        ) : item.selectedLink ? (
+                          <div>
+                            <div className="font-semibold">R${item.selectedLink.price.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground truncate max-w-[80px]">
+                              {item.selectedLink.store}
+                            </div>
+                          </div>
+                        ) : item.plannedPrice ? (
+                          <div>
+                            <div className="font-semibold">R${item.plannedPrice.toFixed(2)}</div>
                           <div className="text-xs text-muted-foreground">Planejado</div>
                         </div>
                       ) : (
@@ -187,6 +291,48 @@ export function PlannerItemList({ items, categories, tags, filters, sort }: Plan
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+
+                  {/* Inline price editor for bought items */}
+                  {isEditingPrice && item.isBought && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        defaultValue={item.boughtPrice?.toFixed(2) || "0.00"}
+                        className="w-28 h-8 text-sm"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const value = parseFloat((e.target as HTMLInputElement).value)
+                            if (!isNaN(value)) handleUpdateBoughtPrice(item.id, value)
+                          }
+                          if (e.key === 'Escape') setEditingPriceItemId(null)
+                        }}
+                      />
+                      <Button 
+                        size="sm" 
+                        className="h-8"
+                        onClick={(e) => {
+                          const input = (e.target as HTMLElement).parentElement?.querySelector('input')
+                          if (input) {
+                            const value = parseFloat(input.value)
+                            if (!isNaN(value)) handleUpdateBoughtPrice(item.id, value)
+                          }
+                        }}
+                      >
+                        Salvar
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8"
+                        onClick={() => setEditingPriceItemId(null)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -200,7 +346,6 @@ export function PlannerItemList({ items, categories, tags, filters, sort }: Plan
                 <div className="mt-4 pt-4 border-t border-border">
                   <ItemForm
                     categories={categories}
-                    tags={tags}
                     item={item}
                     onSuccess={() => setEditingItemId(null)}
                     onCancel={() => setEditingItemId(null)}
@@ -211,6 +356,7 @@ export function PlannerItemList({ items, categories, tags, filters, sort }: Plan
           </Card>
         )
       })}
-    </div>
+      </div>
+    </>
   )
 }

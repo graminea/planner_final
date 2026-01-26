@@ -48,18 +48,6 @@ export const DEFAULT_CATEGORIES = [
 ]
 
 // ============================================================================
-// TAG TYPES
-// ============================================================================
-
-export interface Tag {
-  id: string
-  name: string
-  color: string | null
-  createdAt: Date
-  userId: string
-}
-
-// ============================================================================
 // ITEM TYPES
 // ============================================================================
 
@@ -92,7 +80,6 @@ export interface Item {
     name: string
     icon: string | null
   } | null
-  tags: Tag[]
   links: ItemLink[]
   // Computed
   lowestPrice: number | null
@@ -103,7 +90,6 @@ export interface ItemFilters {
   isBought?: boolean
   categoryId?: string | null // null = uncategorized, undefined = all
   priority?: number
-  tagIds?: string[]
   search?: string
 }
 
@@ -252,22 +238,26 @@ export interface CategoryBudgetSummary {
   id: string
   name: string
   icon: string | null
-  budget: number | null
-  planned: number
-  spent: number
-  remaining: number
+  budget: number | null  // This is the "allocation" for the category
+  planned: number        // Sum of item planned prices
+  spent: number          // Sum of item bought prices
+  remaining: number      // allocation - spent (or planned - spent if no allocation)
   percentSpent: number
   itemCount: number
   boughtCount: number
 }
 
 export interface BudgetSummary {
-  totalBudget: number
-  totalPlanned: number
-  totalSpent: number
-  remaining: number
+  totalBudget: number      // The single source of truth - overall budget limit
+  totalPlanned: number     // Sum of all item planned prices
+  totalSpent: number       // Sum of all item bought prices
+  totalAllocated: number   // Sum of all category allocations
+  unallocated: number      // totalBudget - totalAllocated (available for new allocations)
+  remaining: number        // totalBudget - totalSpent
   percentSpent: number
   percentPlanned: number
+  percentAllocated: number
   currency: string
   categories: CategoryBudgetSummary[]
+  hasBudget: boolean       // Whether user has set an overall budget
 }

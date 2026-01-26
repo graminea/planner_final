@@ -3,7 +3,11 @@
 /**
  * Server Actions for Budget Management
  * 
- * Tracks global and category-level budgets with spending calculations.
+ * MENTAL MODEL:
+ * - One single source of truth: the overall budget
+ * - Categories have "allocations" (desired amounts), not independent limits
+ * - Sum of all category allocations must never exceed overall budget
+ * - Unallocated = Overall Budget - Sum(Category Allocations)
  */
 
 import { revalidatePath } from 'next/cache'
@@ -13,6 +17,22 @@ import type { BudgetSettings, BudgetSummary, CategoryBudgetSummary } from '@/lib
 
 // Re-export types for convenience
 export type { BudgetSettings, BudgetSummary, CategoryBudgetSummary }
+
+// ============================================================================
+// HELPER: Get total allocated across all categories
+// ============================================================================
+
+async function getTotalAllocated(userId: string, excludeCategoryId?: string): Promise<number> {
+  const categories = await prisma.category.findMany({
+    where: { 
+      userId,
+      ...(excludeCategoryId ? { id: { not: excludeCategoryId } } : {})
+    },
+    select: { budget: true }
+  })
+  
+  return categories.reduce((sum, cat) => sum + (cat.budget ? Number(cat.budget) : 0), 0)
+}
 
 // ============================================================================
 // ACTIONS
@@ -47,74 +67,168 @@ export async function getBudgetSettings(): Promise<BudgetSettings | null> {
 }
 
 /**
- * Set global budget
+ * Get the remaining available budget (not yet allocated to categories)
+ */
+export async function getAvailableBudget(): Promise<{ 
+  available: number
+  totalBudget: number
+  totalAllocated: number
+} | null> {
+  const userId = await getCurrentUserId()
+  if (!userId) return null
+
+  try {
+    const settings = await prisma.budgetSettings.findUnique({
+      where: { userId }
+    })
+    
+    if (!settings) {
+      return { available: 0, totalBudget: 0, totalAllocated: 0 }
+    }
+
+    const totalBudget = Number(settings.totalBudget)
+    const totalAllocated = await getTotalAllocated(userId)
+    const available = totalBudget - totalAllocated
+
+    return { available, totalBudget, totalAllocated }
+  } catch (error) {
+    console.error('Failed to get available budget:', error)
+    return null
+  }
+}
+
+/**
+ * Set the overall budget
+ * 
+ * CONSTRAINT: If new budget < current allocations, returns error with details
  */
 export async function setBudget(
   totalBudget: number,
   currency: string = 'BRL'
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; currentAllocations?: number }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
     if (!userId) return { success: false, error: 'Not authenticated' }
 
     if (totalBudget < 0) {
-      return { success: false, error: 'Budget must be positive' }
+      return { success: false, error: 'O orçamento deve ser positivo' }
+    }
+
+    // Check if new budget would be less than current allocations
+    const totalAllocated = await getTotalAllocated(userId)
+    
+    if (totalBudget < totalAllocated) {
+      return { 
+        success: false, 
+        error: `O novo orçamento (R$${totalBudget.toFixed(0)}) é menor que o total já alocado (R$${totalAllocated.toFixed(0)}). Reduza as alocações das categorias primeiro.`,
+        currentAllocations: totalAllocated
+      }
     }
 
     await prisma.budgetSettings.upsert({
       where: { userId },
-      create: {
-        userId,
-        totalBudget,
-        currency
-      },
-      update: {
-        totalBudget,
-        currency
-      }
+      create: { userId, totalBudget, currency },
+      update: { totalBudget, currency }
     })
 
     revalidatePath('/dashboard')
     return { success: true }
   } catch (error) {
     console.error('Failed to set budget:', error)
-    return { success: false, error: 'Failed to set budget' }
+    return { success: false, error: 'Falha ao definir orçamento' }
   }
 }
 
 /**
- * Set category budget
+ * Set category allocation
+ * 
+ * CONSTRAINTS:
+ * - Cannot allocate if no overall budget is set
+ * - Cannot allocate more than available budget
+ * - Returns real-time feedback about available budget
  */
-export async function setCategoryBudget(
+export async function setCategoryAllocation(
   categoryId: string,
-  budget: number | null
-): Promise<{ success: boolean; error?: string }> {
+  allocation: number | null
+): Promise<{ 
+  success: boolean
+  error?: string
+  available?: number
+  totalBudget?: number
+}> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
     if (!userId) return { success: false, error: 'Not authenticated' }
+
+    // Get overall budget
+    const settings = await prisma.budgetSettings.findUnique({
+      where: { userId }
+    })
+
+    if (!settings) {
+      return { 
+        success: false, 
+        error: 'Defina um orçamento geral antes de alocar valores para categorias.' 
+      }
+    }
+
+    const totalBudget = Number(settings.totalBudget)
 
     // Verify category ownership
     const category = await prisma.category.findFirst({
       where: { id: categoryId, userId }
     })
     if (!category) {
-      return { success: false, error: 'Category not found' }
+      return { success: false, error: 'Categoria não encontrada' }
     }
 
+    // Calculate available (excluding current category's existing allocation)
+    const otherAllocations = await getTotalAllocated(userId, categoryId)
+    const availableForThisCategory = totalBudget - otherAllocations
+
+    // Validate allocation doesn't exceed available
+    const newAllocation = allocation ?? 0
+    
+    if (newAllocation < 0) {
+      return { 
+        success: false, 
+        error: 'A alocação deve ser positiva',
+        available: availableForThisCategory,
+        totalBudget
+      }
+    }
+
+    if (newAllocation > availableForThisCategory) {
+      return { 
+        success: false, 
+        error: `Não é possível alocar R$${newAllocation.toFixed(0)}. Disponível: R$${availableForThisCategory.toFixed(0)}`,
+        available: availableForThisCategory,
+        totalBudget
+      }
+    }
+
+    // Update category allocation
     await prisma.category.update({
       where: { id: categoryId },
-      data: { budget }
+      data: { budget: allocation }
     })
 
     revalidatePath('/dashboard')
-    return { success: true }
+    return { 
+      success: true,
+      available: availableForThisCategory - newAllocation,
+      totalBudget
+    }
   } catch (error) {
-    console.error('Failed to set category budget:', error)
-    return { success: false, error: 'Failed to set category budget' }
+    console.error('Failed to set category allocation:', error)
+    return { success: false, error: 'Falha ao definir alocação' }
   }
 }
+
+// Keep old function name for backwards compatibility
+export const setCategoryBudget = setCategoryAllocation
 
 /**
  * Get comprehensive budget summary with calculations
@@ -232,18 +346,24 @@ export async function getBudgetSummary(): Promise<BudgetSummary | null> {
     // Calculate totals
     const totalPlanned = categoryBudgets.reduce((sum, cat) => sum + cat.planned, 0)
     const totalSpent = categoryBudgets.reduce((sum, cat) => sum + cat.spent, 0)
-    const totalBudget = settings ? Number(settings.totalBudget) : totalPlanned
+    const totalAllocated = categoryBudgets.reduce((sum, cat) => sum + (cat.budget ?? 0), 0)
+    const totalBudget = settings ? Number(settings.totalBudget) : 0
     const remaining = totalBudget - totalSpent
+    const unallocated = totalBudget - totalAllocated
 
     return {
       totalBudget,
       totalPlanned,
       totalSpent,
+      totalAllocated,
+      unallocated,
       remaining,
       percentSpent: totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0,
       percentPlanned: totalBudget > 0 ? (totalPlanned / totalBudget) * 100 : 0,
+      percentAllocated: totalBudget > 0 ? (totalAllocated / totalBudget) * 100 : 0,
       currency: settings?.currency || 'BRL',
-      categories: categoryBudgets
+      categories: categoryBudgets,
+      hasBudget: !!settings
     }
   } catch (error) {
     console.error('Failed to get budget summary:', error)

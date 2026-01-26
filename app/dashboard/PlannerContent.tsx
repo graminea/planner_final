@@ -9,22 +9,20 @@
 import { useState, useMemo } from "react"
 import type { Category, CategoryWithItems } from "@/app/actions/categories"
 import type { Item, ItemFilters, ItemSort } from "@/app/actions/items-new"
-import type { Tag } from "@/app/actions/tags"
 import type { BudgetSummary } from "@/app/actions/budget"
-import { Plus, X, SlidersHorizontal, TagIcon } from "lucide-react"
+import { Plus, X, SlidersHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { FigueiraWatermark } from "@/components/FigueiraWatermark"
 
-import { CategoryList, FilterBar, BudgetDisplay, TagManager, ItemForm, PlannerItemList } from "@/components/planner"
+import { CategoryList, FilterBar, BudgetDisplay, ItemForm, PlannerItemList } from "@/components/planner"
 import { DEFAULT_FILTERS, DEFAULT_SORT, getFilterCounts } from "@/lib/filters"
 
 interface PlannerContentProps {
   categories: Category[]
   categoriesWithItems: CategoryWithItems[]
   initialItems: Item[]
-  tags: Tag[]
   budgetSummary: BudgetSummary | null
 }
 
@@ -32,7 +30,6 @@ export function PlannerContent({
   categories,
   categoriesWithItems,
   initialItems,
-  tags,
   budgetSummary,
 }: PlannerContentProps) {
   // Filter and sort state
@@ -41,7 +38,6 @@ export function PlannerContent({
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  const [showTagManager, setShowTagManager] = useState(false)
 
   // Calculate filter counts
   const filterCounts = useMemo(() => getFilterCounts(initialItems), [initialItems])
@@ -52,7 +48,6 @@ export function PlannerContent({
       filters.isBought !== undefined ||
       filters.categoryId !== undefined ||
       filters.priority !== undefined ||
-      (filters.tagIds && filters.tagIds.length > 0) ||
       (filters.search && filters.search.length > 0)
     )
   }, [filters])
@@ -78,24 +73,6 @@ export function PlannerContent({
             selectedCategoryId={filters.categoryId}
             onSelectCategory={handleCategorySelect}
           />
-
-          <div className="rounded-xl border border-border bg-card p-4">
-            <button
-              onClick={() => setShowTagManager(!showTagManager)}
-              className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-primary transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <TagIcon className="w-4 h-4" />
-                Etiquetas
-              </span>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{tags.length}</span>
-            </button>
-            {showTagManager && (
-              <div className="mt-4">
-                <TagManager tags={tags} />
-              </div>
-            )}
-          </div>
         </aside>
 
         <div className="flex-1 min-w-0">
@@ -125,9 +102,6 @@ export function PlannerContent({
                         handleCategorySelect(id)
                       }}
                     />
-                    <div className="pt-4">
-                      <TagManager tags={tags} />
-                    </div>
                   </div>
                 </div>
               </SheetContent>
@@ -148,7 +122,6 @@ export function PlannerContent({
           <div className={`mb-4 ${showFilters ? "block" : "hidden"} lg:block`}>
             <FilterBar
               categories={categories}
-              tags={tags}
               filters={filters}
               sort={sort}
               onFiltersChange={setFilters}
@@ -176,7 +149,6 @@ export function PlannerContent({
               <div className="mt-4">
                 <ItemForm
                   categories={categories}
-                  tags={tags}
                   onSuccess={() => setShowAddForm(false)}
                   onCancel={() => setShowAddForm(false)}
                 />
@@ -185,7 +157,7 @@ export function PlannerContent({
           </div>
 
           {/* Items List */}
-          <PlannerItemList items={initialItems} categories={categories} tags={tags} filters={filters} sort={sort} />
+          <PlannerItemList items={initialItems} categories={categories} filters={filters} sort={sort} />
         </div>
       </div>
 
@@ -207,7 +179,6 @@ export function PlannerContent({
               <div className="py-4 pb-8 pb-safe">
                 <ItemForm
                   categories={categories}
-                  tags={tags}
                   onSuccess={() => setShowAddForm(false)}
                   onCancel={() => setShowAddForm(false)}
                 />

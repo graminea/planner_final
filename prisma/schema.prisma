@@ -24,7 +24,6 @@ model User {
   // Relations
   items       Item[]
   categories  Category[]
-  tags        Tag[]
   suggestions ItemSuggestion[]
   budgetSettings BudgetSettings?
   
@@ -56,25 +55,6 @@ model Category {
 }
 
 // ============================================================================
-// TAG MODEL
-// Flexible labels for items (e.g., "urgent", "gift", "sale")
-// ============================================================================
-model Tag {
-  id        String   @id @default(cuid())
-  name      String
-  color     String?  // Optional color for v0 redesign
-  createdAt DateTime @default(now())
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  items     ItemTag[]
-  
-  @@unique([userId, name]) // Unique tag names per user
-  @@index([userId])
-}
-
-// ============================================================================
 // ITEM MODEL
 // Core entity representing a household item to purchase
 // ============================================================================
@@ -97,31 +77,12 @@ model Item {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   
-  tags       ItemTag[]
   links      ItemLink[]
   
   @@index([userId])
   @@index([categoryId])
   @@index([isBought])
   @@index([priority])
-}
-
-// ============================================================================
-// ITEM TAG (Join Table)
-// Many-to-many relationship between Items and Tags
-// ============================================================================
-model ItemTag {
-  id        String   @id @default(cuid())
-  itemId    String
-  tagId     String
-  createdAt DateTime @default(now())
-  
-  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  
-  @@unique([itemId, tagId])
-  @@index([itemId])
-  @@index([tagId])
 }
 
 // ============================================================================

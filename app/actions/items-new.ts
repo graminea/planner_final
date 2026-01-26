@@ -4,7 +4,7 @@
  * Server Actions for Item Management (Updated for Home Planner)
  * 
  * Items are the core entity - things to purchase for the home.
- * Supports categories, tags, multiple links, and budget tracking.
+ * Supports categories, multiple links, and budget tracking.
  */
 
 import { revalidatePath } from 'next/cache'
@@ -14,12 +14,6 @@ import type { Item, ItemLink, ItemFilters, ItemSort, ItemSortField, ItemSortOrde
 
 // Re-export types for convenience
 export type { Item, ItemLink, ItemFilters, ItemSort, ItemSortField, ItemSortOrder }
-
-interface ItemTag {
-  id: string
-  name: string
-  color: string | null
-}
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -62,11 +56,6 @@ function transformItem(item: any): Item {
       name: item.category.name,
       icon: item.category.icon
     } : null,
-    tags: item.tags?.map((t: any) => ({
-      id: t.tag.id,
-      name: t.tag.name,
-      color: t.tag.color
-    })) || [],
     links,
     lowestPrice,
     selectedLink
@@ -109,14 +98,6 @@ export async function getItems(
         mode: 'insensitive'
       }
     }
-    
-    if (filters?.tagIds && filters.tagIds.length > 0) {
-      where.tags = {
-        some: {
-          tagId: { in: filters.tagIds }
-        }
-      }
-    }
 
     // Build orderBy
     let orderBy: any = { createdAt: 'desc' }
@@ -137,13 +118,6 @@ export async function getItems(
       include: {
         category: {
           select: { id: true, name: true, icon: true }
-        },
-        tags: {
-          include: {
-            tag: {
-              select: { id: true, name: true, color: true }
-            }
-          }
         },
         links: {
           orderBy: { price: 'asc' }
@@ -173,13 +147,6 @@ export async function getItem(id: string): Promise<Item | null> {
         category: {
           select: { id: true, name: true, icon: true }
         },
-        tags: {
-          include: {
-            tag: {
-              select: { id: true, name: true, color: true }
-            }
-          }
-        },
         links: {
           orderBy: { price: 'asc' }
         }
@@ -203,7 +170,6 @@ export async function createItem(data: {
   priority?: number
   plannedPrice?: number | null
   notes?: string | null
-  tagIds?: string[]
 }): Promise<{ success: boolean; error?: string; item?: Item }> {
   try {
     await requireAuth()
@@ -214,29 +180,25 @@ export async function createItem(data: {
       return { success: false, error: 'Item name is required' }
     }
 
+    // Debug: log planned price
+    console.log('[createItem] Received data:', { 
+      name: data.name, 
+      plannedPrice: data.plannedPrice, 
+      typeofPlannedPrice: typeof data.plannedPrice 
+    })
+
     const item = await prisma.item.create({
       data: {
         name: data.name.trim(),
         userId,
         categoryId: data.categoryId || null,
-        priority: data.priority || 2,
-        plannedPrice: data.plannedPrice || null,
-        notes: data.notes || null,
-        // Create tag connections if provided
-        tags: data.tagIds && data.tagIds.length > 0 ? {
-          create: data.tagIds.map(tagId => ({ tagId }))
-        } : undefined
+        priority: data.priority ?? 2,
+        plannedPrice: data.plannedPrice ?? null,
+        notes: data.notes || null
       },
       include: {
         category: {
           select: { id: true, name: true, icon: true }
-        },
-        tags: {
-          include: {
-            tag: {
-              select: { id: true, name: true, color: true }
-            }
-          }
         },
         links: true
       }
@@ -307,8 +269,13 @@ export async function updateItem(
 
 /**
  * Toggle item bought status
+ * @param id - The item ID
+ * @param boughtPrice - Optional: the actual price paid. If not provided when marking as bought, uses plannedPrice
  */
-export async function toggleItemBought(id: string): Promise<{ success: boolean; error?: string }> {
+export async function toggleItemBought(
+  id: string, 
+  boughtPrice?: number
+): Promise<{ success: boolean; error?: string; item?: { isBought: boolean; boughtPrice: number | null } }> {
   try {
     await requireAuth()
     const userId = await getCurrentUserId()
@@ -323,19 +290,67 @@ export async function toggleItemBought(id: string): Promise<{ success: boolean; 
 
     const newIsBought = !item.isBought
     
-    await prisma.item.update({
+    // When marking as bought, use provided price, or fall back to plannedPrice
+    const actualBoughtPrice = newIsBought 
+      ? (boughtPrice !== undefined ? boughtPrice : (item.plannedPrice ? Number(item.plannedPrice) : null))
+      : null
+    
+    const updatedItem = await prisma.item.update({
       where: { id },
       data: {
         isBought: newIsBought,
-        boughtAt: newIsBought ? new Date() : null
+        boughtAt: newIsBought ? new Date() : null,
+        boughtPrice: actualBoughtPrice
       }
+    })
+
+    revalidatePath('/dashboard')
+    return { 
+      success: true, 
+      item: { 
+        isBought: updatedItem.isBought, 
+        boughtPrice: updatedItem.boughtPrice ? Number(updatedItem.boughtPrice) : null 
+      } 
+    }
+  } catch (error) {
+    console.error('Failed to toggle item:', error)
+    return { success: false, error: 'Failed to toggle item' }
+  }
+}
+
+/**
+ * Update the bought price of an item (for adjusting after marking as bought)
+ */
+export async function updateItemBoughtPrice(
+  id: string, 
+  boughtPrice: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAuth()
+    const userId = await getCurrentUserId()
+    if (!userId) return { success: false, error: 'Not authenticated' }
+
+    const item = await prisma.item.findFirst({
+      where: { id, userId }
+    })
+    if (!item) {
+      return { success: false, error: 'Item not found' }
+    }
+
+    if (!item.isBought) {
+      return { success: false, error: 'Item must be marked as bought first' }
+    }
+
+    await prisma.item.update({
+      where: { id },
+      data: { boughtPrice }
     })
 
     revalidatePath('/dashboard')
     return { success: true }
   } catch (error) {
-    console.error('Failed to toggle item:', error)
-    return { success: false, error: 'Failed to toggle item' }
+    console.error('Failed to update bought price:', error)
+    return { success: false, error: 'Failed to update bought price' }
   }
 }
 

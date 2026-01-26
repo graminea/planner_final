@@ -11,7 +11,6 @@ import { useRouter } from "next/navigation"
 import { createItem, updateItem } from "@/app/actions/items-new"
 import type { Item } from "@/app/actions/items-new"
 import type { Category } from "@/app/actions/categories"
-import type { Tag } from "@/app/actions/tags"
 import type { ItemSuggestion } from "@/app/actions/suggestions"
 import { ItemSuggestionInput } from "./ItemSuggestionInput"
 import { PRIORITY_OPTIONS } from "@/lib/filters"
@@ -25,13 +24,12 @@ import { cn } from "@/lib/utils"
 
 interface ItemFormProps {
   categories: Category[]
-  tags: Tag[]
   item?: Item
   onSuccess?: () => void
   onCancel?: () => void
 }
 
-export function ItemForm({ categories, tags, item, onSuccess, onCancel }: ItemFormProps) {
+export function ItemForm({ categories, item, onSuccess, onCancel }: ItemFormProps) {
   const router = useRouter()
   const isEditing = !!item
 
@@ -40,7 +38,6 @@ export function ItemForm({ categories, tags, item, onSuccess, onCancel }: ItemFo
   const [priority, setPriority] = useState(item?.priority || 2)
   const [plannedPrice, setPlannedPrice] = useState(item?.plannedPrice?.toString() || "")
   const [notes, setNotes] = useState(item?.notes || "")
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(item?.tags.map((t) => t.id) || [])
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -59,10 +56,6 @@ export function ItemForm({ categories, tags, item, onSuccess, onCancel }: ItemFo
     [categories],
   )
 
-  const toggleTag = (tagId: string) => {
-    setSelectedTagIds((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
@@ -73,13 +66,23 @@ export function ItemForm({ categories, tags, item, onSuccess, onCancel }: ItemFo
     setIsSubmitting(true)
     setError(null)
 
+    // Parse planned price properly
+    const parsedPlannedPrice = plannedPrice.trim() 
+      ? Number.parseFloat(plannedPrice) 
+      : null
+    
+    // Check for NaN
+    const finalPlannedPrice = parsedPlannedPrice !== null && !isNaN(parsedPlannedPrice) 
+      ? parsedPlannedPrice 
+      : null
+
     try {
       if (isEditing) {
         const result = await updateItem(item.id, {
           name: name.trim(),
           categoryId,
           priority,
-          plannedPrice: plannedPrice ? Number.parseFloat(plannedPrice) : null,
+          plannedPrice: finalPlannedPrice,
           notes: notes || null,
         })
 
@@ -93,9 +96,8 @@ export function ItemForm({ categories, tags, item, onSuccess, onCancel }: ItemFo
           name: name.trim(),
           categoryId,
           priority,
-          plannedPrice: plannedPrice ? Number.parseFloat(plannedPrice) : null,
+          plannedPrice: finalPlannedPrice,
           notes: notes || null,
-          tagIds: selectedTagIds,
         })
 
         if (!result.success) {
@@ -114,7 +116,6 @@ export function ItemForm({ categories, tags, item, onSuccess, onCancel }: ItemFo
         setPriority(2)
         setPlannedPrice("")
         setNotes("")
-        setSelectedTagIds([])
       }
     } catch (err) {
       setError("Ocorreu um erro")
@@ -192,32 +193,6 @@ export function ItemForm({ categories, tags, item, onSuccess, onCancel }: ItemFo
           ))}
         </div>
       </div>
-
-      {tags.length > 0 && (
-        <div className="space-y-2">
-          <Label>Etiquetas</Label>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <label
-                key={tag.id}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm cursor-pointer border transition-colors",
-                  selectedTagIds.includes(tag.id)
-                    ? "bg-primary/10 border-primary text-primary"
-                    : "bg-card border-border hover:bg-muted",
-                )}
-              >
-                <Checkbox
-                  checked={selectedTagIds.includes(tag.id)}
-                  onCheckedChange={() => toggleTag(tag.id)}
-                  className="h-4 w-4"
-                />
-                {tag.name}
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="space-y-2">
         <Label htmlFor="notes">Notas</Label>

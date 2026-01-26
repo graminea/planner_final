@@ -8,17 +8,14 @@ import { useState, useCallback } from "react"
 import { Search, X, ArrowUpDown } from "lucide-react"
 import type { ItemFilters, ItemSort, ItemSortField } from "@/app/actions/items-new"
 import type { Category } from "@/app/actions/categories"
-import type { Tag } from "@/app/actions/tags"
 import { PRIORITY_OPTIONS, SORT_OPTIONS } from "@/lib/filters"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 interface FilterBarProps {
   categories: Category[]
-  tags: Tag[]
   filters: ItemFilters
   sort: ItemSort
   onFiltersChange: (filters: ItemFilters) => void
@@ -30,7 +27,7 @@ interface FilterBarProps {
   }
 }
 
-export function FilterBar({ categories, tags, filters, sort, onFiltersChange, onSortChange, counts }: FilterBarProps) {
+export function FilterBar({ categories, filters, sort, onFiltersChange, onSortChange, counts }: FilterBarProps) {
   const [searchValue, setSearchValue] = useState(filters.search || "")
 
   const setFilter = useCallback(
@@ -52,18 +49,11 @@ export function FilterBar({ categories, tags, filters, sort, onFiltersChange, on
     }, 300)
   }
 
-  const toggleTagFilter = (tagId: string) => {
-    const currentTags = filters.tagIds || []
-    const newTags = currentTags.includes(tagId) ? currentTags.filter((id) => id !== tagId) : [...currentTags, tagId]
-    setFilter("tagIds", newTags.length > 0 ? newTags : undefined)
-  }
-
   const hasFilters =
     filters.search ||
     filters.isBought !== undefined ||
     filters.categoryId !== undefined ||
-    filters.priority !== undefined ||
-    (filters.tagIds && filters.tagIds.length > 0)
+    filters.priority !== undefined
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 space-y-4">
@@ -183,28 +173,6 @@ export function FilterBar({ categories, tags, filters, sort, onFiltersChange, on
           </Button>
         </div>
       </div>
-
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          <span className="text-xs text-muted-foreground self-center mr-1">Tags:</span>
-          {tags.map((tag) => {
-            const isActive = filters.tagIds?.includes(tag.id)
-            return (
-              <Badge
-                key={tag.id}
-                variant={isActive ? "default" : "outline"}
-                className={cn(
-                  "cursor-pointer transition-colors",
-                  isActive ? "bg-primary hover:bg-primary/90" : "hover:bg-muted",
-                )}
-                onClick={() => toggleTagFilter(tag.id)}
-              >
-                {tag.name}
-              </Badge>
-            )
-          })}
-        </div>
-      )}
     </div>
   )
 }

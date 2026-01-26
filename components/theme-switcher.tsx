@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const THEMES = [
+const ALL_THEMES = [
   { value: 'light', label: 'Claro', icon: Sun },
   { value: 'dark', label: 'Drak', icon: Moon },
   { value: 'tokyo-night', label: 'Tokyo Night', icon: JapaneseYen },
@@ -29,11 +29,15 @@ const THEMES = [
   { value: 'gruvbox', label: 'Gruvbox', icon: TreePine },
   { value: 'dracula', label: 'Dracula', icon: Skull },
   { value: 'figueira', label: 'Figueira Porra', icon: Shield },
-  { value: 'couple', label: 'Nosso Amor', icon: Heart },
+  { value: 'couple', label: 'Nosso Amor', icon: Heart, restrictedTo: ['graminea', 'analindamomo'] },
   { value: 'system', label: 'Sistema', icon: Monitor },
 ]
 
-export function ThemeSwitcher() {
+interface ThemeSwitcherProps {
+  userNickname?: string
+}
+
+export function ThemeSwitcher({ userNickname }: ThemeSwitcherProps = {}) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -49,6 +53,14 @@ export function ThemeSwitcher() {
       </Button>
     )
   }
+
+  // Filter themes based on user
+  const THEMES = ALL_THEMES.filter(t => {
+    if (t.restrictedTo) {
+      return userNickname && t.restrictedTo.includes(userNickname)
+    }
+    return true
+  })
 
   const currentTheme = THEMES.find((t) => t.value === theme) || THEMES[0]
   const Icon = currentTheme.icon

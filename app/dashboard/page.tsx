@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <ThemeSwitcher />
+            <ThemeSwitcher userNickname={user.nickname} />
             <UserMenu nickname={user.nickname} />
           </div>
         </div>

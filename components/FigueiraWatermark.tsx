@@ -30,8 +30,8 @@ export function FigueiraWatermark() {
           className="blur-[0.5px]"
         />
       </div>
-      {/* Secondary logos for depth */}
-      <div className="absolute top-1/4 -left-32 w-80 h-80 rotate-12 opacity-15">
+      {/* Secondary logos for depth - hidden on mobile */}
+      <div className="hidden lg:block absolute top-1/4 -left-32 w-80 h-80 rotate-12 opacity-15">
         <Image 
           src="/figueirense/logo.png" 
           alt="" 
@@ -40,7 +40,7 @@ export function FigueiraWatermark() {
           className="blur-[1px]"
         />
       </div>
-      <div className="absolute bottom-1/4 -right-32 w-80 h-80 -rotate-12 opacity-15">
+      <div className="hidden lg:block absolute bottom-1/4 -right-32 w-80 h-80 -rotate-12 opacity-15">
         <Image 
           src="/figueirense/logo.png" 
           alt="" 
@@ -49,8 +49,8 @@ export function FigueiraWatermark() {
           className="blur-[1px]"
         />
       </div>
-      {/* Subtle corner accents */}
-      <div className="absolute top-10 right-10 w-24 h-24 rotate-45 opacity-10">
+      {/* Subtle corner accents - hidden on mobile */}
+      <div className="hidden lg:block absolute top-10 right-10 w-24 h-24 rotate-45 opacity-10">
         <Image 
           src="/figueirense/logo.png" 
           alt="" 
@@ -59,7 +59,7 @@ export function FigueiraWatermark() {
           className="blur-sm"
         />
       </div>
-      <div className="absolute bottom-10 left-10 w-24 h-24 -rotate-45 opacity-10">
+      <div className="hidden lg:block absolute bottom-10 left-10 w-24 h-24 -rotate-45 opacity-10">
         <Image 
           src="/figueirense/logo.png" 
           alt="" 

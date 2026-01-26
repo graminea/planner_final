@@ -84,7 +84,7 @@ export function CoupleWatermark() {
         return (
           <div
             key={index}
-            className="absolute rounded-xl overflow-hidden shadow-2xl photo-frame"
+            className={`absolute rounded-xl overflow-hidden shadow-2xl photo-frame ${index >= 4 ? 'hidden lg:block' : ''}`}
             style={{
               top: pos.top,
               bottom: pos.bottom,

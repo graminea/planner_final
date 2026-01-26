@@ -9,7 +9,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { UserMenu } from "@/components/auth/UserMenu"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { PlannerContent } from "./PlannerContent"
-import { Home } from "lucide-react"
+import { DashboardHeader } from "./DashboardHeader"
 
 // Data fetching
 import { getCategories, getCategoriesWithItems } from "@/app/actions/categories"
@@ -45,14 +45,7 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
         <div className="px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-              <Home className="w-4 h-4 text-primary" />
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-semibold text-foreground">Nossa listinha momooooo</h1>
-            </div>
-          </div>
+          <DashboardHeader />
 
           <div className="flex-1 max-w-xs mx-4 hidden sm:block">
             <div className="flex items-center gap-2">

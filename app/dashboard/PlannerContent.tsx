@@ -15,6 +15,7 @@ import { Plus, X, SlidersHorizontal, TagIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { FigueiraWatermark } from "@/components/FigueiraWatermark"
 
 import { CategoryList, FilterBar, BudgetDisplay, TagManager, ItemForm, PlannerItemList } from "@/components/planner"
 import { DEFAULT_FILTERS, DEFAULT_SORT, getFilterCounts } from "@/lib/filters"
@@ -67,7 +68,8 @@ export function PlannerContent({
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-6 p-4 lg:p-6">
+      <FigueiraWatermark />
+      <div className="flex flex-col lg:flex-row gap-6 p-4 lg:p-6 relative z-10">
         <aside className="hidden lg:block w-96 flex-shrink-0 space-y-4">
           <BudgetDisplay summary={budgetSummary} />
 

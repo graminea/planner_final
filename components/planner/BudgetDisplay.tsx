@@ -6,7 +6,10 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Pencil, Check, X, Wallet } from "lucide-react"
+import { useTheme } from "next-themes"
+import Image from "next/image"
+import { useEffect } from "react"
+import { Wallet, Check, X, Pencil } from "lucide-react"
 import type { BudgetSummary } from "@/app/actions/budget"
 import { setBudget, setCategoryBudget } from "@/app/actions/budget"
 import { Button } from "@/components/ui/button"
@@ -19,9 +22,16 @@ interface BudgetDisplayProps {
 
 export function BudgetDisplay({ summary }: BudgetDisplayProps) {
   const router = useRouter()
+  const { theme } = useTheme()
   const [isEditing, setIsEditing] = useState(false)
   const [newBudget, setNewBudget] = useState(summary?.totalBudget?.toString() || "")
   const [isSaving, setIsSaving] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const isFigueira = mounted && theme === 'figueira'
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -36,9 +46,20 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Wallet className="w-6 h-6 text-primary" />
-            </div>
+            {isFigueira ? (
+              <div className="w-12 h-12 relative">
+                <Image 
+                  src="/figueirense/icon.png" 
+                  alt="Figueirense" 
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Wallet className="w-6 h-6 text-primary" />
+              </div>
+            )}
             <div>
               <p className="text-sm text-muted-foreground mb-3">Nenhum orçamento definido</p>
               {isEditing ? (

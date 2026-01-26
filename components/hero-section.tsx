@@ -1,9 +1,20 @@
+'use client'
+
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 import { ArrowRight, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
 
 export function HeroSection() {
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const isFigueira = mounted && theme === 'figueira'
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <section className="relative overflow-hidden py-20 md:py-32">
       <div className="container mx-auto px-4 md:px-6">
@@ -46,6 +57,18 @@ export function HeroSection() {
           </div>
 
           <div className="relative">
+            {isFigueira && (
+              <div className="absolute -top-8 -right-8 z-20 mascot-container">
+                <div className="relative w-36 h-36 -ml-2">
+                  <Image 
+                    src="/figueirense/mascot.png" 
+                    alt="Figueirense" 
+                    fill
+                    className="object-contain drop-shadow-2xl"
+                  />
+                </div>
+              </div>
+            )}
             <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-border bg-card">
               <Image
                 src="/modern-cozy-living-room-with-couple-unpacking-boxe.jpg"

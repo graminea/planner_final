@@ -6,6 +6,8 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
+import { useEffect } from "react"
 import { ChevronDown, ChevronUp, Pencil, Trash2, Link2, ShoppingBag } from "lucide-react"
 import type { Item, ItemFilters, ItemSort } from "@/app/actions/items-new"
 import type { Category } from "@/app/actions/categories"
@@ -30,6 +32,13 @@ interface PlannerItemListProps {
 
 export function PlannerItemList({ items, categories, tags, filters, sort }: PlannerItemListProps) {
   const router = useRouter()
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const isFigueira = mounted && theme === 'figueira'
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const displayedItems = useMemo(() => filterAndSortItems(items, filters, sort), [items, filters, sort])
 
@@ -51,9 +60,20 @@ export function PlannerItemList({ items, categories, tags, filters, sort }: Plan
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-            <ShoppingBag className="w-8 h-8 text-muted-foreground" />
-          </div>
+          {isFigueira ? (
+            <div className="w-28 h-28 mx-auto mb-4 relative -ml-1 mascot-container">
+              <Image 
+                src="/figueirense/mascot.png" 
+                alt="Figueirense Mascot" 
+                fill
+                className="opacity-50 object-contain"
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+              <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+            </div>
+          )}
           <p className="text-muted-foreground">Nenhum item corresponde aos filtros.</p>
         </CardContent>
       </Card>

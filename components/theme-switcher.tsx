@@ -9,7 +9,7 @@
 
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
-import { Moon, Sun, Monitor, Palette, JapaneseYen, Coffee, Snowflake, TreePine, Skull, Code } from 'lucide-react'
+import { Moon, Sun, Monitor, Palette, JapaneseYen, Coffee, Snowflake, TreePine, Skull, Code, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -28,6 +28,7 @@ const THEMES = [
   { value: 'nord', label: 'Nord', icon: Snowflake },
   { value: 'gruvbox', label: 'Gruvbox', icon: TreePine },
   { value: 'dracula', label: 'Dracula', icon: Skull },
+  { value: 'figueira', label: 'Figueira Porra', icon: Shield },
   { value: 'system', label: 'Sistema', icon: Monitor },
 ]
 
@@ -42,9 +43,8 @@ export function ThemeSwitcher() {
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="sm" className="w-[140px] h-9">
-        <Palette className="h-4 w-4 mr-2" />
-        <span>Tema</span>
+      <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+        <Palette className="h-4 w-4" />
       </Button>
     )
   }
@@ -54,13 +54,10 @@ export function ThemeSwitcher() {
 
   return (
     <Select value={theme} onValueChange={setTheme}>
-      <SelectTrigger className="w-[140px] h-9">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4" />
-          <SelectValue />
-        </div>
+      <SelectTrigger className="h-9 w-9 p-0 border-0">
+        <Icon className="h-4 w-4" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent align="end">
         {THEMES.map((t) => {
           const ThemeIcon = t.icon
           return (
@@ -97,7 +94,7 @@ export function ThemeToggle() {
   }
 
   const cycleTheme = () => {
-    const themeOrder = ['light', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula']
+    const themeOrder = ['light', 'dark', 'tokyo-night', 'monokai', 'catppuccin', 'nord', 'gruvbox', 'dracula', 'figueira']
     const currentIndex = themeOrder.indexOf(theme || 'light')
     const nextIndex = (currentIndex + 1) % themeOrder.length
     setTheme(themeOrder[nextIndex])

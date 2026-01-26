@@ -6,7 +6,10 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { LogOut, User } from "lucide-react"
+import { useTheme } from "next-themes"
+import Image from "next/image"
+import { useEffect } from "react"
+import { User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/app/actions/auth"
 
@@ -16,7 +19,14 @@ interface UserMenuProps {
 
 export function UserMenu({ nickname }: UserMenuProps) {
   const router = useRouter()
+  const { theme } = useTheme()
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const isFigueira = mounted && theme === 'figueira'
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleLogout = async () => {
     setIsLoading(true)
@@ -27,8 +37,17 @@ export function UserMenu({ nickname }: UserMenuProps) {
   return (
     <div className="flex items-center gap-2">
       <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-          <User className="w-4 h-4 text-primary" />
+        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center relative overflow-hidden">
+          {isFigueira ? (
+            <Image 
+              src="/figueirense/icon.png" 
+              alt="Avatar" 
+              fill
+              className="object-contain p-0.5"
+            />
+          ) : (
+            <User className="w-4 h-4 text-primary" />
+          )}
         </div>
         <span className="hidden md:block max-w-[150px] truncate">{nickname}</span>
       </div>

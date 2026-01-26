@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useTheme } from 'next-themes'
+import { useEffect } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,11 +13,18 @@ import { register } from '@/app/actions/auth'
 
 export function RegisterForm() {
   const router = useRouter()
+  const { theme } = useTheme()
   const [nikname, setNikname] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const isFigueira = mounted && theme === 'figueira'
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,7 +49,21 @@ export function RegisterForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <>
+      {isFigueira && (
+        <div className="mb-6 flex justify-center mascot-container">
+          <div className="relative w-[120px] h-[120px] -ml-1">
+            <Image 
+              src="/figueirense/mascot.png" 
+              alt="Figueirense Mascot" 
+              fill
+              className="drop-shadow-2xl object-contain"
+              priority
+            />
+          </div>
+        </div>
+      )}
+      <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Criar Conta</CardTitle>
         <CardDescription>Momo bora ve as coisa pra compra</CardDescription>
@@ -105,5 +128,6 @@ export function RegisterForm() {
         </CardFooter>
       </form>
     </Card>
+    </>
   )
 }

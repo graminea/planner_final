@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
+import { useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,10 +14,17 @@ import { login } from '@/app/actions/auth'
 
 export function LoginForm() {
   const router = useRouter()
+  const { theme } = useTheme()
   const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const isFigueira = mounted && theme === 'figueira'
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +43,21 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <>
+      {isFigueira && (
+        <div className="mb-6 flex justify-center mascot-container">
+          <div className="relative w-[140px] h-[140px] -ml-2">
+            <Image 
+              src="/figueirense/mascot.png" 
+              alt="Figueirense Mascot" 
+              fill
+              className="drop-shadow-2xl object-contain"
+              priority
+            />
+          </div>
+        </div>
+      )}
+      <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Bem-vindo de Volta</CardTitle>
         <CardDescription>Entre para acessar sua lista de casa</CardDescription>
@@ -85,5 +109,6 @@ export function LoginForm() {
         </CardFooter>
       </form>
     </Card>
+    </>
   )
 }

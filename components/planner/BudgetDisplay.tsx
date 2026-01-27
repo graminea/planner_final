@@ -29,6 +29,8 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
   const router = useRouter()
   const { theme } = useTheme()
   const [isEditingBudget, setIsEditingBudget] = useState(false)
+  const [chartView, setChartView] = useState<"bar" | "donut">("donut")
+  const [showGraphs, setShowGraphs] = useState(false)
   const [newBudget, setNewBudget] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -144,6 +146,8 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
 
   const percentSpent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0
   const percentAllocated = totalBudget > 0 ? (totalAllocated / totalBudget) * 100 : 0
+  const percentRemaining = totalBudget > 0 ? Math.max((remaining / totalBudget) * 100, 0) : 0
+  const percentUnallocated = totalBudget > 0 ? Math.max((unallocated / totalBudget) * 100, 0) : 0
 
   return (
     <Card>
@@ -227,6 +231,64 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
               Alocado: R${totalAllocated.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
             </span>
           </div>
+        </div>
+
+        {/* Graph View Toggle */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setShowGraphs(!showGraphs)}
+            className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+          >
+            <span>Grafecos top mor</span>
+            <span className="text-xs normal-case font-normal">
+              {showGraphs ? "Ocultar ▲" : "Mostrar ▼"}
+            </span>
+          </button>
+
+          {showGraphs && (
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground text-center">Gastos</div>
+                <DonutChart
+                  segments={[
+                    { value: totalSpent, color: percentSpent > 100 ? "#ef4444" : "#f12c2c" },
+                    { value: Math.max(remaining, 0), color: "#32f50b" },
+                  ]}
+                />
+                <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full" style={{ background: percentSpent > 100 ? "#ef4444" : "#f12c2c" }} />
+                    Gasto
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full" style={{ background: "#32f50b" }} />
+                    Restante
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground text-center">Alocação</div>
+                <DonutChart
+                  segments={[
+                    { value: totalAllocated, color: "#6366f1" },
+                    { value: Math.max(unallocated, 0), color: "#fffb00" },
+                  ]}
+                />
+                <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full" style={{ background: "#6366f1" }} />
+                    Alocado
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full" style={{ background: "#fffb00" }} />
+                    Disponível
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Key Metrics Grid */}
@@ -439,6 +501,53 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
           Itens planejados (R${category.planned.toFixed(0)}) excedem alocação
         </div>
       )}
+    </div>
+  )
+}
+
+interface DonutSegment {
+  value: number
+  color: string
+}
+
+function DonutChart({ segments }: { segments: DonutSegment[] }) {
+  const total = segments.reduce((sum, s) => sum + s.value, 0)
+  const normalized = total > 0 ? segments : [{ value: 1, color: "hsl(var(--muted-foreground) / 0.2)" }]
+  const safeTotal = normalized.reduce((sum, s) => sum + s.value, 0)
+  let offset = 0
+
+  return (
+    <div className="flex items-center justify-center">
+      <svg viewBox="0 0 36 36" className="h-24 w-24">
+        <circle
+          cx="18"
+          cy="18"
+          r="15.915"
+          fill="transparent"
+          stroke="hsl(var(--muted))"
+          strokeWidth="4"
+        />
+        {normalized.map((segment, index) => {
+          const percent = safeTotal > 0 ? (segment.value / safeTotal) * 100 : 0
+          const dash = `${percent} ${100 - percent}`
+          const element = (
+            <circle
+              key={index}
+              cx="18"
+              cy="18"
+              r="15.915"
+              fill="transparent"
+              stroke={segment.color}
+              strokeWidth="4"
+              strokeDasharray={dash}
+              strokeDashoffset={25 - offset}
+              strokeLinecap="butt"
+            />
+          )
+          offset += percent
+          return element
+        })}
+      </svg>
     </div>
   )
 }

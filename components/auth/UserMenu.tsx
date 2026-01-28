@@ -37,7 +37,7 @@ export function UserMenu({ nickname }: UserMenuProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center relative overflow-hidden">
           {isFigueira ? (
             <Image 

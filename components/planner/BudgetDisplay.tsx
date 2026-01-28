@@ -446,8 +446,12 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
           isEditing ? 'bg-muted/50' : ''
         }`}
         onClick={() => {
-          if (category.id !== "uncategorized" && !isEditing) {
-            setIsEditing(true)
+          if (category.id !== "uncategorized") {
+            setIsEditing(!isEditing)
+            if (!isEditing) {
+              // Opening editor - reset error
+              setError(null)
+            }
           }
         }}
       >

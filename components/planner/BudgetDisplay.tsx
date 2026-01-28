@@ -439,8 +439,18 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
   const isOverBudget = allocation > 0 && category.spent > allocation
 
   return (
-    <div className="group p-2 rounded-lg hover:bg-muted/30 transition-colors">
-      <div className="flex items-center justify-between text-sm">
+    <div className="group rounded-lg hover:bg-muted/30 transition-colors">
+      {/* Category Header - clickable on mobile */}
+      <div 
+        className={`p-2 flex items-center justify-between text-sm cursor-pointer ${
+          isEditing ? 'bg-muted/50' : ''
+        }`}
+        onClick={() => {
+          if (category.id !== "uncategorized" && !isEditing) {
+            setIsEditing(true)
+          }
+        }}
+      >
         <span className="flex items-center gap-2 text-foreground">
           <span>{category.icon}</span>
           <span className="font-medium truncate">{category.name}</span>
@@ -449,43 +459,7 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
           </span>
         </span>
 
-        {isEditing ? (
-          <div className="flex flex-col items-end gap-1">
-            {error && (
-              <span className="text-xs text-destructive">{error}</span>
-            )}
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">R$</span>
-              <Input
-                type="number"
-                value={allocationValue}
-                onChange={(e) => { setAllocationValue(e.target.value); setError(null) }}
-                className="h-7 w-24 text-xs"
-                placeholder="0"
-                max={maxAllocation}
-              />
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="h-7 w-7 p-0" 
-                onClick={handleSave}
-              >
-                <Check className="w-3 h-3" />
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="h-7 w-7 p-0" 
-                onClick={() => { setIsEditing(false); setError(null) }}
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Máx: R${maxAllocation.toFixed(0)}
-            </span>
-          </div>
-        ) : (
+        {!isEditing && (
           <div className="flex items-center gap-2">
             <div className="text-right">
               <div className={`text-xs font-medium ${isOverBudget ? "text-destructive" : ""}`}>
@@ -503,13 +477,68 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => setIsEditing(true)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsEditing(true)
+                }}
               >
                 <Pencil className="w-3 h-3" />
               </Button>
             )}
           </div>
         )}
+      </div>
+
+      {/* Edit Form - slides down */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isEditing ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="px-2 pb-2 pt-1 space-y-2 border-t border-muted">
+          {error && (
+            <div className="text-xs text-destructive">{error}</div>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">R$</span>
+            <Input
+              type="number"
+              value={allocationValue}
+              onChange={(e) => { setAllocationValue(e.target.value); setError(null) }}
+              className="h-8 text-sm flex-1"
+              placeholder="0"
+              max={maxAllocation}
+              autoFocus
+              onClick={(e) => e.stopPropagation()}
+            />
+            <Button 
+              size="sm" 
+              variant="default" 
+              className="h-8 px-3" 
+              onClick={(e) => {
+                e.stopPropagation()
+                handleSave()
+              }}
+            >
+              <Check className="w-4 h-4" />
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-8 px-3" 
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsEditing(false)
+                setError(null)
+              }}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Máx: R${maxAllocation.toFixed(0)}
+          </div>
+        </div>
       </div>
 
       {/* Progress bar */}

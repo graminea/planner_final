@@ -114,7 +114,24 @@ export function PlannerItemList({ items, categories, filters, sort }: PlannerIte
     setMounted(true)
   }, [])
 
-  const displayedItems = useMemo(() => filterAndSortItems(items, filters, sort), [items, filters, sort])
+  // Optimistic updates state
+  const [optimisticItems, setOptimisticItems] = useState<Map<string, Partial<Item>>>(new Map())
+
+  // Clear optimistic state when items prop changes (i.e., when server data arrives)
+  useEffect(() => {
+    setOptimisticItems(new Map())
+  }, [items])
+
+  const displayedItems = useMemo(() => {
+    // Apply optimistic updates to items
+    const updatedItems = items
+      .filter(item => !(optimisticItems.get(item.id) as any)?._deleted)
+      .map(item => {
+        const optimistic = optimisticItems.get(item.id)
+        return optimistic ? { ...item, ...optimistic } : item
+      })
+    return filterAndSortItems(updatedItems, filters, sort)
+  }, [items, filters, sort, optimisticItems])
 
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
@@ -123,9 +140,20 @@ export function PlannerItemList({ items, categories, filters, sort }: PlannerIte
 
   const handleToggleBought = async (item: Item) => {
     if (item.isBought) {
-      // Unmarking as bought - just toggle
-      await toggleItemBought(item.id)
-      router.refresh()
+      // Unmarking as bought - optimistic update first
+      setOptimisticItems(prev => new Map(prev).set(item.id, { isBought: false, boughtPrice: null }))
+      
+      // Then sync with DB in background
+      toggleItemBought(item.id).then(() => {
+        router.refresh()
+      }).catch(() => {
+        // Rollback on error
+        setOptimisticItems(prev => {
+          const next = new Map(prev)
+          next.delete(item.id)
+          return next
+        })
+      })
     } else {
       // Marking as bought - show price dialog
       setBuyingItem(item)
@@ -134,21 +162,58 @@ export function PlannerItemList({ items, categories, filters, sort }: PlannerIte
 
   const handleConfirmBuy = async (price: number) => {
     if (!buyingItem) return
-    await toggleItemBought(buyingItem.id, price)
+    
+    const itemId = buyingItem.id
+    
+    // Optimistic update
+    setOptimisticItems(prev => new Map(prev).set(itemId, { isBought: true, boughtPrice: price }))
     setBuyingItem(null)
-    router.refresh()
+    
+    // Sync with DB in background
+    toggleItemBought(itemId, price).then(() => {
+      router.refresh()
+    }).catch(() => {
+      setOptimisticItems(prev => {
+        const next = new Map(prev)
+        next.delete(itemId)
+        return next
+      })
+    })
   }
 
   const handleUpdateBoughtPrice = async (itemId: string, price: number) => {
-    await updateItemBoughtPrice(itemId, price)
+    // Optimistic update
+    setOptimisticItems(prev => new Map(prev).set(itemId, { boughtPrice: price }))
     setEditingPriceItemId(null)
-    router.refresh()
+    
+    // Sync with DB in background
+    updateItemBoughtPrice(itemId, price).then(() => {
+      router.refresh()
+    }).catch(() => {
+      setOptimisticItems(prev => {
+        const next = new Map(prev)
+        next.delete(itemId)
+        return next
+      })
+    })
   }
 
   const handleDelete = async (itemId: string) => {
     if (!confirm("Excluir este item?")) return
-    await deleteItem(itemId)
-    router.refresh()
+    
+    // Optimistic update - hide item immediately
+    setOptimisticItems(prev => new Map(prev).set(itemId, { _deleted: true } as any))
+    
+    deleteItem(itemId).then(() => {
+      router.refresh()
+    }).catch(() => {
+      // Rollback
+      setOptimisticItems(prev => {
+        const next = new Map(prev)
+        next.delete(itemId)
+        return next
+      })
+    })
   }
 
   if (displayedItems.length === 0) {

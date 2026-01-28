@@ -32,7 +32,6 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
   const [chartView, setChartView] = useState<"bar" | "donut">("donut")
   const [showGraphs, setShowGraphs] = useState(false)
   const [newBudget, setNewBudget] = useState("")
-  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const isFigueira = mounted && theme === 'figueira'
@@ -46,30 +45,39 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
     if (summary?.totalBudget) {
       setNewBudget(summary.totalBudget.toString())
     }
+    // Clear optimistic state when summary changes (i.e., when server data arrives)
+    setOptimisticBudget(null)
   }, [summary?.totalBudget])
 
+  // Optimistic budget state
+  const [optimisticBudget, setOptimisticBudget] = useState<number | null>(null)
+
   const handleSaveBudget = async () => {
-    setIsSaving(true)
     setError(null)
     
     const value = parseFloat(newBudget)
     if (isNaN(value) || value < 0) {
       setError("Digite um valor válido")
-      setIsSaving(false)
       return
     }
 
-    const result = await setBudget(value)
-    
-    if (!result.success) {
-      setError(result.error || "Erro ao salvar")
-      setIsSaving(false)
-      return
-    }
-
-    router.refresh()
-    setIsSaving(false)
+    // Optimistic update - close editor and show new value immediately
+    setOptimisticBudget(value)
     setIsEditingBudget(false)
+
+    // Sync with DB in background
+    setBudget(value).then(result => {
+      if (!result.success) {
+        setError(result.error || "Erro ao salvar")
+        setOptimisticBudget(null) // Rollback
+        setIsEditingBudget(true)
+      } else {
+        router.refresh()
+      }
+    }).catch(() => {
+      setOptimisticBudget(null)
+      setIsEditingBudget(true)
+    })
   }
 
   // No budget set yet - prompt user to set one
@@ -124,7 +132,7 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
                   className="w-32"
                   autoFocus
                 />
-                <Button size="sm" onClick={handleSaveBudget} disabled={isSaving}>
+                <Button size="sm" onClick={handleSaveBudget}>
                   Salvar
                 </Button>
               </div>
@@ -136,13 +144,23 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
   }
 
   const { 
-    totalBudget, 
+    totalBudget: summaryBudget, 
     totalSpent, 
     totalAllocated, 
-    unallocated, 
-    remaining,
+    unallocated: summaryUnallocated, 
+    remaining: summaryRemaining,
     categories 
   } = summary
+
+  // Use optimistic budget if set, otherwise use summary budget
+  const totalBudget = optimisticBudget ?? summaryBudget
+  // Recalculate derived values when using optimistic budget
+  const unallocated = optimisticBudget !== null 
+    ? totalBudget - totalAllocated 
+    : summaryUnallocated
+  const remaining = optimisticBudget !== null 
+    ? totalBudget - totalSpent 
+    : summaryRemaining
 
   const percentSpent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0
   const percentAllocated = totalBudget > 0 ? (totalAllocated / totalBudget) * 100 : 0
@@ -186,7 +204,7 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
                 onChange={(e) => { setNewBudget(e.target.value); setError(null) }} 
                 className="h-9" 
               />
-              <Button size="sm" onClick={handleSaveBudget} disabled={isSaving}>
+              <Button size="sm" onClick={handleSaveBudget}>
                 <Check className="w-4 h-4" />
               </Button>
             </div>
@@ -246,7 +264,11 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
             </span>
           </button>
 
-          {showGraphs && (
+          <div
+            className={`overflow-hidden transition-all duration-500 ease-in-out ${
+              showGraphs ? "max-h-[520px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-4"
+            }`}
+          >
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground text-center">Gastos</div>
@@ -288,7 +310,7 @@ export function BudgetDisplay({ summary }: BudgetDisplayProps) {
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Key Metrics Grid */}
@@ -362,7 +384,13 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
   const [isEditing, setIsEditing] = useState(false)
   const [allocationValue, setAllocationValue] = useState(category.budget?.toString() || "")
   const [error, setError] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const [optimisticAllocation, setOptimisticAllocation] = useState<number | null>(null)
+
+  // Clear optimistic state when category.budget changes (i.e., when server data arrives)
+  useEffect(() => {
+    setOptimisticAllocation(null)
+    setAllocationValue(category.budget?.toString() || "")
+  }, [category.budget])
 
   // Max this category can allocate = current allocation + available
   const maxAllocation = (category.budget ?? 0) + availableBudget
@@ -370,38 +398,41 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
   const handleSave = async () => {
     if (category.id === "uncategorized") return
     
-    setIsSaving(true)
     setError(null)
 
     const value = allocationValue ? parseFloat(allocationValue) : null
     
     if (value !== null && value < 0) {
       setError("Valor deve ser positivo bb duuuur")
-      setIsSaving(false)
       return
     }
 
     if (value !== null && value > maxAllocation) {
       setError(`So tem mais isso affs veyr: R$${maxAllocation.toFixed(0)}`)
-      setIsSaving(false)
       return
     }
 
-    const result = await setCategoryAllocation(category.id, value)
-    
-    if (!result.success) {
-      setError(result.error || "Erro ao salvar")
-      setIsSaving(false)
-      return
-    }
-
-    router.refresh()
-    setIsSaving(false)
+    // Optimistic update - close editor and show new value immediately
+    setOptimisticAllocation(value ?? 0)
     setIsEditing(false)
+
+    // Sync with DB in background
+    setCategoryAllocation(category.id, value).then(result => {
+      if (!result.success) {
+        setError(result.error || "Erro ao salvar")
+        setOptimisticAllocation(null) // Rollback
+        setIsEditing(true)
+      } else {
+        router.refresh()
+      }
+    }).catch(() => {
+      setOptimisticAllocation(null)
+      setIsEditing(true)
+    })
   }
 
-  // Calculate progress
-  const allocation = category.budget ?? 0
+  // Calculate progress - use optimistic value if set
+  const allocation = optimisticAllocation ?? (category.budget ?? 0)
   const percentOfAllocation = allocation > 0 
     ? Math.min((category.spent / allocation) * 100, 100) 
     : 0
@@ -438,7 +469,6 @@ function CategoryAllocationRow({ category, availableBudget, totalBudget }: Categ
                 variant="ghost" 
                 className="h-7 w-7 p-0" 
                 onClick={handleSave}
-                disabled={isSaving}
               >
                 <Check className="w-3 h-3" />
               </Button>
@@ -511,14 +541,34 @@ interface DonutSegment {
 }
 
 function DonutChart({ segments }: { segments: DonutSegment[] }) {
+  const [animate, setAnimate] = useState(false)
   const total = segments.reduce((sum, s) => sum + s.value, 0)
   const normalized = total > 0 ? segments : [{ value: 1, color: "hsl(var(--muted-foreground) / 0.2)" }]
   const safeTotal = normalized.reduce((sum, s) => sum + s.value, 0)
-  let offset = 0
+  
+  // Trigger animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimate(true), 50)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Calculate all segments with their offsets
+  const segmentsWithOffsets = normalized.map((segment, index) => {
+    const percent = safeTotal > 0 ? (segment.value / safeTotal) * 100 : 0
+    const previousPercents = normalized
+      .slice(0, index)
+      .reduce((sum, s) => sum + (safeTotal > 0 ? (s.value / safeTotal) * 100 : 0), 0)
+    return {
+      ...segment,
+      percent,
+      offset: 25 - previousPercents, // 25 starts at top (12 o'clock)
+    }
+  })
 
   return (
     <div className="flex items-center justify-center">
       <svg viewBox="0 0 36 36" className="h-24 w-24">
+        {/* Background circle */}
         <circle
           cx="18"
           cy="18"
@@ -527,26 +577,24 @@ function DonutChart({ segments }: { segments: DonutSegment[] }) {
           stroke="hsl(var(--muted))"
           strokeWidth="4"
         />
-        {normalized.map((segment, index) => {
-          const percent = safeTotal > 0 ? (segment.value / safeTotal) * 100 : 0
-          const dash = `${percent} ${100 - percent}`
-          const element = (
-            <circle
-              key={index}
-              cx="18"
-              cy="18"
-              r="15.915"
-              fill="transparent"
-              stroke={segment.color}
-              strokeWidth="4"
-              strokeDasharray={dash}
-              strokeDashoffset={25 - offset}
-              strokeLinecap="butt"
-            />
-          )
-          offset += percent
-          return element
-        })}
+        {/* Segments */}
+        {segmentsWithOffsets.map((segment, index) => (
+          <circle
+            key={index}
+            cx="18"
+            cy="18"
+            r="15.915"
+            fill="transparent"
+            stroke={segment.color}
+            strokeWidth="4"
+            strokeDasharray={animate ? `${segment.percent} ${100 - segment.percent}` : "0 100"}
+            strokeDashoffset={segment.offset}
+            strokeLinecap="butt"
+            style={{
+              transition: `stroke-dasharray 0.8s ease-out ${index * 0.1}s`,
+            }}
+          />
+        ))}
       </svg>
     </div>
   )

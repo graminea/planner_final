@@ -46,6 +46,21 @@ export function ThemeSwitcher({ userNickname }: ThemeSwitcherProps = {}) {
     setMounted(true)
   }, [])
 
+  // Check if current theme is accessible by user, reset if not
+  useEffect(() => {
+    if (!mounted || !theme) return
+
+    const currentThemeConfig = ALL_THEMES.find(t => t.value === theme)
+    
+    // If current theme is restricted and user doesn't have access, reset to default
+    if (currentThemeConfig?.restrictedTo) {
+      const hasAccess = userNickname && currentThemeConfig.restrictedTo.includes(userNickname)
+      if (!hasAccess) {
+        setTheme('dark') // Reset to default theme
+      }
+    }
+  }, [mounted, theme, userNickname, setTheme])
+
   if (!mounted) {
     return (
       <Button variant="ghost" size="sm" className="h-9 w-9 p-0">

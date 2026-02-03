@@ -26,8 +26,23 @@ export async function register(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Validate input
-    if (nickname.length < 3 || nickname.length > 30) {
-      return { success: false, error: 'nickname invalido, deve ter ao menos 3 caracteres e no máximo 30 caracteres' }
+    if (!nickname || !nickname.trim()) {
+      return { success: false, error: 'Nick é obrigatório' }
+    }
+
+    // Remove spaces and validate
+    const cleanNickname = nickname.trim()
+    
+    if (cleanNickname.includes(' ')) {
+      return { success: false, error: 'Nick não pode conter espaços' }
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(cleanNickname)) {
+      return { success: false, error: 'Nick só pode ter letras, números, _ e -' }
+    }
+
+    if (cleanNickname.length < 3 || cleanNickname.length > 30) {
+      return { success: false, error: 'Nick deve ter entre 3 e 30 caracteres' }
     }
 
     if (!password || password.length < 6) {
@@ -36,7 +51,7 @@ export async function register(
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { nickname: nickname.toLowerCase() },
+      where: { nickname: cleanNickname.toLowerCase() },
     })
 
     if (existingUser) {
@@ -48,7 +63,7 @@ export async function register(
     
     const user = await prisma.user.create({
       data: {
-        nickname: nickname.toLowerCase(),
+        nickname: cleanNickname.toLowerCase(),
         password: hashedPassword,
       },
     })
@@ -77,9 +92,11 @@ export async function login(
       return { success: false, error: 'Nick e senha são obrigatórios' }
     }
 
+    const cleanNickname = nickname.trim()
+
     // Find user by nickname
     const user = await prisma.user.findUnique({
-      where: { nickname: nickname.toLowerCase() },
+      where: { nickname: cleanNickname.toLowerCase() },
     })
 
     if (!user) {

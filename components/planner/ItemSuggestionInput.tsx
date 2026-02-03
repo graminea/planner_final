@@ -145,12 +145,6 @@ export function ItemSuggestionInput({
           ))}
         </div>
       )}
-
-      {showDropdown && value.length >= 2 && suggestions.length === 0 && !isLoading && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg p-3">
-          <p className="text-sm text-muted-foreground">Nenhuma sugestão. Pressione Enter para adicionar "{value}"</p>
-        </div>
-      )}
     </div>
   )
 }

@@ -7,7 +7,7 @@
 import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronRight, ChevronDown, Plus, Trash2, FolderOpen, Package } from "lucide-react"
-import type { CategoryWithItems } from "@/app/actions/categories"
+import type { CategoryWithItems } from "@/lib/types"
 import { createCategory, deleteCategory } from "@/app/actions/categories"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

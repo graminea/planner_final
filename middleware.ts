@@ -1,8 +1,8 @@
 /**
- * Proxy for Route Protection (Next.js 16+)
+ * Route Protection Middleware (Next.js 16+)
  * 
- * This proxy runs on the edge and protects routes by verifying
- * JWT session tokens. It does NOT use Prisma (which isn't edge-compatible).
+ * Runs on the edge to protect routes by verifying JWT session tokens.
+ * Does NOT use Prisma (which isn't edge-compatible).
  */
 
 import { NextResponse } from 'next/server'
@@ -15,7 +15,7 @@ const publicRoutes = ['/', '/login', '/register']
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/login', '/register']
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Check if route is public
@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
     try {
       const secret = process.env.JWT_SECRET
       if (!secret || secret.length < 32) {
-        console.error('JWT_SECRET missing or too short in proxy')
+        console.error('JWT_SECRET missing or too short in middleware')
         // Clear invalid session cookie to prevent loops and continue
         if (!isPublicRoute) {
           const response = NextResponse.redirect(new URL('/login', request.url))

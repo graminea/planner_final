@@ -6,8 +6,7 @@
 
 import { useState, useCallback } from "react"
 import { Search, X, ArrowUpDown } from "lucide-react"
-import type { ItemFilters, ItemSort, ItemSortField } from "@/app/actions/items-new"
-import type { Category } from "@/app/actions/categories"
+import type { ItemFilters, ItemSort, ItemSortField, Category } from "@/lib/types"
 import { PRIORITY_OPTIONS, SORT_OPTIONS } from "@/lib/filters"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

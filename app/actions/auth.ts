@@ -16,6 +16,7 @@ import {
   deleteSessionCookie,
   getCurrentUser,
 } from '@/lib/auth'
+import { registerSchema, loginSchema } from '@/lib/validation'
 
 /**
  * Register a new user
@@ -25,33 +26,14 @@ export async function register(
   password: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Validate input
-    if (!nickname || !nickname.trim()) {
-      return { success: false, error: 'Nick é obrigatório' }
-    }
-
-    // Remove spaces and validate
-    const cleanNickname = nickname.trim()
-    
-    if (cleanNickname.includes(' ')) {
-      return { success: false, error: 'Nick não pode conter espaços' }
-    }
-
-    if (!/^[a-zA-Z0-9_-]+$/.test(cleanNickname)) {
-      return { success: false, error: 'Nick só pode ter letras, números, _ e -' }
-    }
-
-    if (cleanNickname.length < 3 || cleanNickname.length > 30) {
-      return { success: false, error: 'Nick deve ter entre 3 e 30 caracteres' }
-    }
-
-    if (!password || password.length < 6) {
-      return { success: false, error: 'Senha deve ter ao menos 6 caracteres' }
+    const parsed = registerSchema.safeParse({ nickname, password })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
     }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { nickname: cleanNickname.toLowerCase() },
+      where: { nickname: parsed.data.nickname.toLowerCase() },
     })
 
     if (existingUser) {
@@ -59,11 +41,11 @@ export async function register(
     }
 
     // Hash password and create user
-    const hashedPassword = await hashPassword(password)
+    const hashedPassword = await hashPassword(parsed.data.password)
     
     const user = await prisma.user.create({
       data: {
-        nickname: cleanNickname.toLowerCase(),
+        nickname: parsed.data.nickname.toLowerCase(),
         password: hashedPassword,
       },
     })
@@ -75,7 +57,7 @@ export async function register(
     return { success: true }
   } catch (error) {
     console.error('Registration error:', error)
-    return { success: false, error: 'Registration failed. Please try again.' }
+    return { success: false, error: 'Falha no registro. Tente novamente.' }
   }
 }
 
@@ -87,16 +69,14 @@ export async function login(
   password: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Validate input
-    if (!nickname || !password) {
-      return { success: false, error: 'Nick e senha são obrigatórios' }
+    const parsed = loginSchema.safeParse({ nickname, password })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
     }
-
-    const cleanNickname = nickname.trim()
 
     // Find user by nickname
     const user = await prisma.user.findUnique({
-      where: { nickname: cleanNickname.toLowerCase() },
+      where: { nickname: parsed.data.nickname.toLowerCase() },
     })
 
     if (!user) {
@@ -104,7 +84,7 @@ export async function login(
     }
 
     // Verify password
-    const isValid = await verifyPassword(password, user.password)
+    const isValid = await verifyPassword(parsed.data.password, user.password)
 
     if (!isValid) {
       return { success: false, error: 'Nick ou senha inválidos' }
@@ -117,7 +97,7 @@ export async function login(
     return { success: true }
   } catch (error) {
     console.error('Login error:', error)
-    return { success: false, error: 'Login failed. Please try again.' }
+    return { success: false, error: 'Falha no login. Tente novamente.' }
   }
 }
 

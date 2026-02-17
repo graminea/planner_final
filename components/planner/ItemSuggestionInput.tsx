@@ -9,7 +9,7 @@ import type React from "react"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Loader2 } from "lucide-react"
 import { searchSuggestions, incrementSuggestionUsage } from "@/app/actions/suggestions"
-import type { ItemSuggestion } from "@/app/actions/suggestions"
+import type { ItemSuggestion } from "@/lib/types"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 

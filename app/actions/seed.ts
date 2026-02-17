@@ -114,8 +114,6 @@ const SUGGESTION_TRANSLATION: Record<string, string> = {
 export async function initializeUserData(): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
 
     // Seed default categories for user
     await seedDefaultCategories()
@@ -160,9 +158,7 @@ export async function migrateToPortuguese(): Promise<{
   itemsUpdated?: number
 }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const user = await requireAuth()
 
     let categoriesUpdated = 0
     let suggestionsUpdated = 0
@@ -170,7 +166,7 @@ export async function migrateToPortuguese(): Promise<{
 
     // 1. Update user's categories
     const userCategories = await prisma.category.findMany({
-      where: { userId },
+      where: { userId: user.id },
       select: { id: true, name: true }
     })
     
@@ -209,7 +205,7 @@ export async function migrateToPortuguese(): Promise<{
 
     // 3. Update user's items that have English names from suggestions
     const userItems = await prisma.item.findMany({
-      where: { userId },
+      where: { userId: user.id },
       select: { id: true, name: true }
     })
     

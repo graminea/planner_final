@@ -13,10 +13,8 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUserId, requireAuth } from '@/lib/auth'
+import { setBudgetSchema, setCategoryAllocationSchema } from '@/lib/validation'
 import type { BudgetSettings, BudgetSummary, CategoryBudgetSummary } from '@/lib/types'
-
-// Re-export types for convenience
-export type { BudgetSettings, BudgetSummary, CategoryBudgetSummary }
 
 // ============================================================================
 // HELPER: Get total allocated across all categories
@@ -107,29 +105,28 @@ export async function setBudget(
   currency: string = 'BRL'
 ): Promise<{ success: boolean; error?: string; currentAllocations?: number }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
-
-    if (totalBudget < 0) {
-      return { success: false, error: 'O orçamento deve ser positivo' }
+    const parsed = setBudgetSchema.safeParse({ totalBudget, currency })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
     }
 
+    const user = await requireAuth()
+
     // Check if new budget would be less than current allocations
-    const totalAllocated = await getTotalAllocated(userId)
+    const totalAllocated = await getTotalAllocated(user.id)
     
-    if (totalBudget < totalAllocated) {
+    if (parsed.data.totalBudget < totalAllocated) {
       return { 
         success: false, 
-        error: `O novo orçamento (R$${totalBudget.toFixed(0)}) é menor que o total já alocado (R$${totalAllocated.toFixed(0)}). Reduza as alocações das categorias primeiro.`,
+        error: `O novo orçamento (R$${parsed.data.totalBudget.toFixed(0)}) é menor que o total já alocado (R$${totalAllocated.toFixed(0)}). Reduza as alocações das categorias primeiro.`,
         currentAllocations: totalAllocated
       }
     }
 
     await prisma.budgetSettings.upsert({
-      where: { userId },
-      create: { userId, totalBudget, currency },
-      update: { totalBudget, currency }
+      where: { userId: user.id },
+      create: { userId: user.id, totalBudget: parsed.data.totalBudget, currency: parsed.data.currency },
+      update: { totalBudget: parsed.data.totalBudget, currency: parsed.data.currency }
     })
 
     revalidatePath('/dashboard')
@@ -158,13 +155,16 @@ export async function setCategoryAllocation(
   totalBudget?: number
 }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const parsed = setCategoryAllocationSchema.safeParse({ categoryId, allocation })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+    }
+
+    const user = await requireAuth()
 
     // Get overall budget
     const settings = await prisma.budgetSettings.findUnique({
-      where: { userId }
+      where: { userId: user.id }
     })
 
     if (!settings) {
@@ -178,27 +178,18 @@ export async function setCategoryAllocation(
 
     // Verify category ownership
     const category = await prisma.category.findFirst({
-      where: { id: categoryId, userId }
+      where: { id: parsed.data.categoryId, userId: user.id }
     })
     if (!category) {
       return { success: false, error: 'Categoria não encontrada' }
     }
 
     // Calculate available (excluding current category's existing allocation)
-    const otherAllocations = await getTotalAllocated(userId, categoryId)
+    const otherAllocations = await getTotalAllocated(user.id, parsed.data.categoryId)
     const availableForThisCategory = totalBudget - otherAllocations
 
     // Validate allocation doesn't exceed available
-    const newAllocation = allocation ?? 0
-    
-    if (newAllocation < 0) {
-      return { 
-        success: false, 
-        error: 'A alocação deve ser positiva',
-        available: availableForThisCategory,
-        totalBudget
-      }
-    }
+    const newAllocation = parsed.data.allocation ?? 0
 
     if (newAllocation > availableForThisCategory) {
       return { 
@@ -211,8 +202,8 @@ export async function setCategoryAllocation(
 
     // Update category allocation
     await prisma.category.update({
-      where: { id: categoryId },
-      data: { budget: allocation }
+      where: { id: parsed.data.categoryId },
+      data: { budget: parsed.data.allocation }
     })
 
     revalidatePath('/dashboard')
@@ -227,8 +218,6 @@ export async function setCategoryAllocation(
   }
 }
 
-// Keep old function name for backwards compatibility
-export const setCategoryBudget = setCategoryAllocation
 
 /**
  * Get comprehensive budget summary with calculations

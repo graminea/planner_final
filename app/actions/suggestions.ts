@@ -11,10 +11,8 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUserId, requireAuth } from '@/lib/auth'
 import { DEFAULT_SUGGESTIONS } from '@/lib/types'
+import { searchSuggestionsSchema, createSuggestionSchema, cuidSchema } from '@/lib/validation'
 import type { ItemSuggestion } from '@/lib/types'
-
-// Re-export for convenience
-export type { ItemSuggestion }
 
 // ============================================================================
 // ACTIONS
@@ -27,7 +25,9 @@ export async function searchSuggestions(
   query: string,
   limit: number = 10
 ): Promise<ItemSuggestion[]> {
-  if (!query.trim()) return []
+  const parsed = searchSuggestionsSchema.safeParse({ query, limit })
+  if (!parsed.success) return []
+  if (!parsed.data.query.trim()) return []
 
   try {
     const userId = await getCurrentUserId()
@@ -36,7 +36,7 @@ export async function searchSuggestions(
     const suggestions = await prisma.itemSuggestion.findMany({
       where: {
         name: {
-          contains: query.trim(),
+          contains: parsed.data.query.trim(),
           mode: 'insensitive'
         },
         OR: [
@@ -48,7 +48,7 @@ export async function searchSuggestions(
         { usageCount: 'desc' },
         { name: 'asc' }
       ],
-      take: limit
+      take: parsed.data.limit
     })
 
     return suggestions as ItemSuggestion[]
@@ -87,9 +87,12 @@ export async function getAllSuggestions(): Promise<ItemSuggestion[]> {
 
 /**
  * Seed system suggestions (run once on app init)
+ * Requires authentication to prevent abuse.
  */
 export async function seedSystemSuggestions(): Promise<{ success: boolean; error?: string }> {
   try {
+    await requireAuth()
+
     // Check if already seeded
     const existingCount = await prisma.itemSuggestion.count({
       where: { isSystem: true }
@@ -126,21 +129,20 @@ export async function createSuggestion(
   icon?: string
 ): Promise<{ success: boolean; error?: string; suggestion?: ItemSuggestion }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
-
-    if (!name.trim()) {
-      return { success: false, error: 'Suggestion name is required' }
+    const parsed = createSuggestionSchema.safeParse({ name, categoryName, icon })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
     }
+
+    const user = await requireAuth()
 
     const suggestion = await prisma.itemSuggestion.create({
       data: {
-        name: name.trim(),
-        categoryName: categoryName || null,
-        icon: icon || null,
+        name: parsed.data.name,
+        categoryName: parsed.data.categoryName || null,
+        icon: parsed.data.icon || null,
         isSystem: false,
-        userId
+        userId: user.id
       }
     })
 
@@ -155,9 +157,14 @@ export async function createSuggestion(
  * Increment usage count when suggestion is used
  */
 export async function incrementSuggestionUsage(id: string): Promise<void> {
+  const parsed = cuidSchema.safeParse(id)
+  if (!parsed.success) return
+
   try {
+    await requireAuth()
+
     await prisma.itemSuggestion.update({
-      where: { id },
+      where: { id: parsed.data },
       data: { usageCount: { increment: 1 } }
     })
   } catch (error) {

@@ -83,6 +83,8 @@ model Item {
   @@index([categoryId])
   @@index([isBought])
   @@index([priority])
+  @@index([userId, isBought])      // Composite: filtered item lists
+  @@index([userId, categoryId])    // Composite: items by category
 }
 
 // ============================================================================
@@ -142,21 +144,3 @@ model BudgetSettings {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ============================================================================
-// LEGACY: Keep Option model for migration (can be removed after data migration)
-// ============================================================================
-model Option {
-  id           String   @id @default(cuid())
-  store        String
-  url          String?
-  currentPrice Decimal? @db.Decimal(10, 2)
-  desiredPrice Decimal? @db.Decimal(10, 2)
-  minPrice     Decimal? @db.Decimal(10, 2)
-  notes        String?  @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  itemId       String
-  
-  @@index([itemId])
-}

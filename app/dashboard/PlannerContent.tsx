@@ -7,9 +7,7 @@
  */
 
 import { useState, useMemo } from "react"
-import type { Category, CategoryWithItems } from "@/app/actions/categories"
-import type { Item, ItemFilters, ItemSort } from "@/app/actions/items-new"
-import type { BudgetSummary } from "@/app/actions/budget"
+import type { Category, CategoryWithItems, Item, ItemFilters, ItemSort, BudgetSummary } from "@/lib/types"
 import { Plus, X, SlidersHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"

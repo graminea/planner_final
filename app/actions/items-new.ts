@@ -10,10 +10,15 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUserId, requireAuth } from '@/lib/auth'
+import {
+  createItemSchema,
+  updateItemSchema,
+  cuidSchema,
+  priceSchema,
+  addItemLinkSchema,
+  updateItemLinkSchema,
+} from '@/lib/validation'
 import type { Item, ItemLink, ItemFilters, ItemSort, ItemSortField, ItemSortOrder } from '@/lib/types'
-
-// Re-export types for convenience
-export type { Item, ItemLink, ItemFilters, ItemSort, ItemSortField, ItemSortOrder }
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -172,29 +177,31 @@ export async function createItem(data: {
   notes?: string | null
 }): Promise<{ success: boolean; error?: string; item?: Item }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
-
-    if (!data.name.trim()) {
-      return { success: false, error: 'Item name is required' }
+    const parsed = createItemSchema.safeParse(data)
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
     }
 
-    // Debug: log planned price
-    console.log('[createItem] Received data:', { 
-      name: data.name, 
-      plannedPrice: data.plannedPrice, 
-      typeofPlannedPrice: typeof data.plannedPrice 
-    })
+    const user = await requireAuth()
+
+    // Verify categoryId belongs to user if provided
+    if (parsed.data.categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: parsed.data.categoryId, userId: user.id }
+      })
+      if (!category) {
+        return { success: false, error: 'Categoria não encontrada' }
+      }
+    }
 
     const item = await prisma.item.create({
       data: {
-        name: data.name.trim(),
-        userId,
-        categoryId: data.categoryId || null,
-        priority: data.priority ?? 2,
-        plannedPrice: data.plannedPrice ?? null,
-        notes: data.notes || null
+        name: parsed.data.name,
+        userId: user.id,
+        categoryId: parsed.data.categoryId || null,
+        priority: parsed.data.priority ?? 2,
+        plannedPrice: parsed.data.plannedPrice ?? null,
+        notes: parsed.data.notes || null
       },
       include: {
         category: {
@@ -228,34 +235,50 @@ export async function updateItem(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const idParsed = cuidSchema.safeParse(id)
+    if (!idParsed.success) return { success: false, error: 'ID inválido' }
+
+    const parsed = updateItemSchema.safeParse(data)
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+    }
+
+    const user = await requireAuth()
 
     // Verify ownership
     const existing = await prisma.item.findFirst({
-      where: { id, userId }
+      where: { id: idParsed.data, userId: user.id }
     })
     if (!existing) {
       return { success: false, error: 'Item not found' }
     }
 
-    // If marking as bought, set boughtAt
+    // Verify categoryId belongs to user if changing it
+    if (parsed.data.categoryId !== undefined && parsed.data.categoryId !== null) {
+      const category = await prisma.category.findFirst({
+        where: { id: parsed.data.categoryId, userId: user.id }
+      })
+      if (!category) {
+        return { success: false, error: 'Categoria não encontrada' }
+      }
+    }
+
+    // Build update data
     const updateData: any = {}
     
-    if (data.name !== undefined) updateData.name = data.name.trim()
-    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId
-    if (data.priority !== undefined) updateData.priority = data.priority
-    if (data.plannedPrice !== undefined) updateData.plannedPrice = data.plannedPrice
-    if (data.boughtPrice !== undefined) updateData.boughtPrice = data.boughtPrice
-    if (data.notes !== undefined) updateData.notes = data.notes
-    if (data.isBought !== undefined) {
-      updateData.isBought = data.isBought
-      updateData.boughtAt = data.isBought ? new Date() : null
+    if (parsed.data.name !== undefined) updateData.name = parsed.data.name
+    if (parsed.data.categoryId !== undefined) updateData.categoryId = parsed.data.categoryId
+    if (parsed.data.priority !== undefined) updateData.priority = parsed.data.priority
+    if (parsed.data.plannedPrice !== undefined) updateData.plannedPrice = parsed.data.plannedPrice
+    if (parsed.data.boughtPrice !== undefined) updateData.boughtPrice = parsed.data.boughtPrice
+    if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes
+    if (parsed.data.isBought !== undefined) {
+      updateData.isBought = parsed.data.isBought
+      updateData.boughtAt = parsed.data.isBought ? new Date() : null
     }
 
     await prisma.item.update({
-      where: { id },
+      where: { id: idParsed.data },
       data: updateData
     })
 
@@ -277,12 +300,17 @@ export async function toggleItemBought(
   boughtPrice?: number
 ): Promise<{ success: boolean; error?: string; item?: { isBought: boolean; boughtPrice: number | null } }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const idParsed = cuidSchema.safeParse(id)
+    if (!idParsed.success) return { success: false, error: 'ID inválido' }
+    if (boughtPrice !== undefined) {
+      const priceParsed = priceSchema.safeParse(boughtPrice)
+      if (!priceParsed.success) return { success: false, error: 'Preço inválido' }
+    }
+
+    const user = await requireAuth()
 
     const item = await prisma.item.findFirst({
-      where: { id, userId }
+      where: { id: idParsed.data, userId: user.id }
     })
     if (!item) {
       return { success: false, error: 'Item not found' }
@@ -296,7 +324,7 @@ export async function toggleItemBought(
       : null
     
     const updatedItem = await prisma.item.update({
-      where: { id },
+      where: { id: idParsed.data },
       data: {
         isBought: newIsBought,
         boughtAt: newIsBought ? new Date() : null,
@@ -326,12 +354,15 @@ export async function updateItemBoughtPrice(
   boughtPrice: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const idParsed = cuidSchema.safeParse(id)
+    if (!idParsed.success) return { success: false, error: 'ID inválido' }
+    const priceParsed = priceSchema.safeParse(boughtPrice)
+    if (!priceParsed.success) return { success: false, error: 'Preço inválido' }
+
+    const user = await requireAuth()
 
     const item = await prisma.item.findFirst({
-      where: { id, userId }
+      where: { id: idParsed.data, userId: user.id }
     })
     if (!item) {
       return { success: false, error: 'Item not found' }
@@ -342,8 +373,8 @@ export async function updateItemBoughtPrice(
     }
 
     await prisma.item.update({
-      where: { id },
-      data: { boughtPrice }
+      where: { id: idParsed.data },
+      data: { boughtPrice: priceParsed.data }
     })
 
     revalidatePath('/dashboard')
@@ -359,18 +390,19 @@ export async function updateItemBoughtPrice(
  */
 export async function deleteItem(id: string): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const idParsed = cuidSchema.safeParse(id)
+    if (!idParsed.success) return { success: false, error: 'ID inválido' }
+
+    const user = await requireAuth()
 
     const existing = await prisma.item.findFirst({
-      where: { id, userId }
+      where: { id: idParsed.data, userId: user.id }
     })
     if (!existing) {
       return { success: false, error: 'Item not found' }
     }
 
-    await prisma.item.delete({ where: { id } })
+    await prisma.item.delete({ where: { id: idParsed.data } })
 
     revalidatePath('/dashboard')
     return { success: true }
@@ -397,28 +429,31 @@ export async function addItemLink(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const parsed = addItemLinkSchema.safeParse({ itemId, ...data })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+    }
+
+    const user = await requireAuth()
 
     // Verify item ownership
     const item = await prisma.item.findFirst({
-      where: { id: itemId, userId }
+      where: { id: parsed.data.itemId, userId: user.id }
     })
     if (!item) {
       return { success: false, error: 'Item not found' }
     }
 
     // Check if this is the first link (make it selected by default)
-    const linkCount = await prisma.itemLink.count({ where: { itemId } })
+    const linkCount = await prisma.itemLink.count({ where: { itemId: parsed.data.itemId } })
     
     await prisma.itemLink.create({
       data: {
-        itemId,
-        url: data.url,
-        store: data.store.trim(),
-        price: data.price,
-        notes: data.notes || null,
+        itemId: parsed.data.itemId,
+        url: parsed.data.url,
+        store: parsed.data.store,
+        price: parsed.data.price,
+        notes: parsed.data.notes || null,
         isSelected: linkCount === 0 // First link is selected by default
       }
     })
@@ -444,26 +479,29 @@ export async function updateItemLink(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const parsed = updateItemLinkSchema.safeParse({ linkId, ...data })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+    }
+
+    const user = await requireAuth()
 
     // Verify ownership through item
     const link = await prisma.itemLink.findFirst({
-      where: { id: linkId },
+      where: { id: parsed.data.linkId },
       include: { item: true }
     })
-    if (!link || link.item.userId !== userId) {
+    if (!link || link.item.userId !== user.id) {
       return { success: false, error: 'Link not found' }
     }
 
     await prisma.itemLink.update({
-      where: { id: linkId },
+      where: { id: parsed.data.linkId },
       data: {
-        ...(data.url !== undefined && { url: data.url }),
-        ...(data.store !== undefined && { store: data.store.trim() }),
-        ...(data.price !== undefined && { price: data.price }),
-        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(parsed.data.url !== undefined && { url: parsed.data.url }),
+        ...(parsed.data.store !== undefined && { store: parsed.data.store }),
+        ...(parsed.data.price !== undefined && { price: parsed.data.price }),
+        ...(parsed.data.notes !== undefined && { notes: parsed.data.notes }),
       }
     })
 
@@ -480,19 +518,20 @@ export async function updateItemLink(
  */
 export async function deleteItemLink(linkId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const idParsed = cuidSchema.safeParse(linkId)
+    if (!idParsed.success) return { success: false, error: 'ID inválido' }
+
+    const user = await requireAuth()
 
     const link = await prisma.itemLink.findFirst({
-      where: { id: linkId },
+      where: { id: idParsed.data },
       include: { item: true }
     })
-    if (!link || link.item.userId !== userId) {
+    if (!link || link.item.userId !== user.id) {
       return { success: false, error: 'Link not found' }
     }
 
-    await prisma.itemLink.delete({ where: { id: linkId } })
+    await prisma.itemLink.delete({ where: { id: idParsed.data } })
 
     revalidatePath('/dashboard')
     return { success: true }
@@ -510,13 +549,17 @@ export async function selectItemLink(
   linkId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAuth()
-    const userId = await getCurrentUserId()
-    if (!userId) return { success: false, error: 'Not authenticated' }
+    const itemIdParsed = cuidSchema.safeParse(itemId)
+    const linkIdParsed = cuidSchema.safeParse(linkId)
+    if (!itemIdParsed.success || !linkIdParsed.success) {
+      return { success: false, error: 'ID inválido' }
+    }
+
+    const user = await requireAuth()
 
     // Verify item ownership
     const item = await prisma.item.findFirst({
-      where: { id: itemId, userId }
+      where: { id: itemIdParsed.data, userId: user.id }
     })
     if (!item) {
       return { success: false, error: 'Item not found' }
@@ -525,11 +568,11 @@ export async function selectItemLink(
     // Deselect all links for this item, then select the chosen one
     await prisma.$transaction([
       prisma.itemLink.updateMany({
-        where: { itemId },
+        where: { itemId: itemIdParsed.data },
         data: { isSelected: false }
       }),
       prisma.itemLink.update({
-        where: { id: linkId },
+        where: { id: linkIdParsed.data },
         data: { isSelected: true }
       })
     ])
@@ -542,5 +585,3 @@ export async function selectItemLink(
   }
 }
 
-// Keep old function name for backwards compatibility
-export { toggleItemBought as toggleItemChecked }

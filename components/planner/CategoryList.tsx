@@ -6,7 +6,7 @@
 
 import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronRight, ChevronDown, Plus, Trash2, FolderOpen, Package } from "lucide-react"
+import { ChevronRight, Plus, Trash2, FolderOpen, Package } from "lucide-react"
 import type { CategoryWithItems } from "@/lib/types"
 import { createCategory, deleteCategory } from "@/app/actions/categories"
 import { Button } from "@/components/ui/button"
@@ -82,14 +82,21 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
       </CardHeader>
 
       <CardContent className="space-y-1">
-        {showAddForm && (
-          <div className="p-3 mb-2 rounded-lg bg-muted/50 space-y-2">
+        {/* Animated add form */}
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            showAddForm ? "max-h-40 opacity-100 mb-2" : "max-h-0 opacity-0",
+          )}
+        >
+          <div className="p-3 rounded-lg bg-muted/50 space-y-2">
             <Input
               type="text"
               placeholder="Nome da catigoria vai ser uguê"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               className="h-9"
+              autoFocus={showAddForm}
             />
             <div className="flex gap-2">
               <Input
@@ -104,7 +111,7 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
               </Button>
             </div>
           </div>
-        )}
+        </div>
 
         <button
           className={cn(
@@ -131,20 +138,21 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
           const totalCatItems = category.items.length
 
           return (
-            <div key={category.id}>
+            <div key={category.id} className="group">
               <div
                 className={cn(
                   "flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors",
                   isSelected ? "bg-primary/10" : "hover:bg-muted",
                 )}
               >
-                {/* Expand toggle */}
+                {/* Expand toggle - animated chevron rotation */}
                 <button onClick={() => toggleExpanded(category.id)} className="p-1 hover:bg-muted rounded">
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  )}
+                  <ChevronRight
+                    className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                      isExpanded && "rotate-90",
+                    )}
+                  />
                 </button>
 
                 {/* Category name */}
@@ -164,12 +172,12 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
                   {boughtItems}/{totalCatItems}
                 </span>
 
-                {/* Delete button */}
+                {/* Delete button - visible on group hover */}
                 {!category.isDefault && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:text-destructive"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleDelete(category.id)
@@ -180,7 +188,13 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
                 )}
               </div>
 
-              {isExpanded && (
+              {/* Animated expand/collapse for category items */}
+              <div
+                className={cn(
+                  "overflow-hidden transition-all duration-300 ease-in-out",
+                  isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0",
+                )}
+              >
                 <div className="ml-8 mt-1 mb-2 space-y-0.5">
                   {category.items.length === 0 ? (
                     <div className="text-xs text-muted-foreground py-1 px-2">Sem itens</div>
@@ -212,7 +226,7 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
                     ))
                   )}
                 </div>
-              )}
+              </div>
             </div>
           )
         })}

@@ -78,7 +78,13 @@ export function ItemLinkEditor({ itemId, links, lowestPrice }: ItemLinkEditorPro
         </div>
       )}
 
-      {showAddForm && (
+      {/* Animated add-link form */}
+      <div
+        className={cn(
+          "overflow-hidden transition-all duration-300 ease-in-out",
+          showAddForm ? "max-h-80 opacity-100" : "max-h-0 opacity-0",
+        )}
+      >
         <div className="p-4 rounded-lg bg-muted/50 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -133,7 +139,7 @@ export function ItemLinkEditor({ itemId, links, lowestPrice }: ItemLinkEditorPro
             {isAdding ? "Adicionando..." : "Adicionar Link"}
           </Button>
         </div>
-      )}
+      </div>
 
       {links.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-4">

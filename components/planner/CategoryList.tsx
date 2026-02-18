@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import { ChevronRight, Plus, Trash2, FolderOpen, Package } from "lucide-react"
 import type { CategoryWithItems } from "@/lib/types"
 import { createCategory, deleteCategory } from "@/app/actions/categories"
+import { toggleItemBought } from "@/app/actions/items-new"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +29,9 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
   const [newCategoryName, setNewCategoryName] = useState("")
   const [newCategoryBudget, setNewCategoryBudget] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+
+  // Optimistic state for toggled items: itemId -> optimistic isBought value
+  const [optimisticBought, setOptimisticBought] = useState<Map<string, boolean>>(new Map())
 
   const toggleExpanded = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -63,9 +67,42 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
     router.refresh()
   }
 
-  // Calculate totals
+  const handleToggleBought = useCallback((itemId: string, currentIsBought: boolean) => {
+    // Optimistic update — flip immediately
+    setOptimisticBought((prev) => new Map(prev).set(itemId, !currentIsBought))
+
+    toggleItemBought(itemId).then((result) => {
+      if (!result.success) {
+        // Rollback on failure
+        setOptimisticBought((prev) => {
+          const next = new Map(prev)
+          next.delete(itemId)
+          return next
+        })
+      } else {
+        // Clear optimistic state — server data will arrive via refresh
+        setOptimisticBought((prev) => {
+          const next = new Map(prev)
+          next.delete(itemId)
+          return next
+        })
+        router.refresh()
+      }
+    }).catch(() => {
+      setOptimisticBought((prev) => {
+        const next = new Map(prev)
+        next.delete(itemId)
+        return next
+      })
+    })
+  }, [router])
+
+  // Calculate totals (respecting optimistic state)
+  const getIsBought = (item: { id: string; isBought: boolean }) =>
+    optimisticBought.has(item.id) ? optimisticBought.get(item.id)! : item.isBought
+
   const totalItems = categories.reduce((sum, cat) => sum + cat.items.length, 0)
-  const totalBought = categories.reduce((sum, cat) => sum + cat.items.filter((i) => i.isBought).length, 0)
+  const totalBought = categories.reduce((sum, cat) => sum + cat.items.filter((i) => getIsBought(i)).length, 0)
 
   return (
     <Card>
@@ -134,7 +171,7 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
         {categories.map((category) => {
           const isExpanded = expandedIds.has(category.id)
           const isSelected = selectedCategoryId === category.id
-          const boughtItems = category.items.filter((i) => i.isBought).length
+          const boughtItems = category.items.filter((i) => getIsBought(i)).length
           const totalCatItems = category.items.length
 
           return (
@@ -199,31 +236,41 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
                   {category.items.length === 0 ? (
                     <div className="text-xs text-muted-foreground py-1 px-2">Sem itens</div>
                   ) : (
-                    category.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-muted/50"
-                      >
-                        <span
-                          className={cn(
-                            "w-3 h-3 rounded border-2 flex items-center justify-center",
-                            item.isBought ? "bg-primary border-primary" : "border-muted-foreground",
-                          )}
+                    category.items.map((item) => {
+                      const isBought = optimisticBought.has(item.id)
+                        ? optimisticBought.get(item.id)!
+                        : item.isBought
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-muted/50"
                         >
-                          {item.isBought && (
-                            <svg className="w-2 h-2 text-primary-foreground" fill="currentColor" viewBox="0 0 12 12">
-                              <path d="M10 3L4.5 8.5 2 6" stroke="currentColor" strokeWidth="2" fill="none" />
-                            </svg>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBought(item.id, isBought)}
+                            className={cn(
+                              "w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors cursor-pointer",
+                              isBought
+                                ? "bg-primary border-primary"
+                                : "border-muted-foreground hover:border-primary",
+                            )}
+                          >
+                            {isBought && (
+                              <svg className="w-2 h-2 text-primary-foreground" fill="currentColor" viewBox="0 0 12 12">
+                                <path d="M10 3L4.5 8.5 2 6" stroke="currentColor" strokeWidth="2" fill="none" />
+                              </svg>
+                            )}
+                          </button>
+                          <span className={cn("flex-1 truncate", isBought && "text-muted-foreground line-through")}>
+                            {item.name}
+                          </span>
+                          {item.plannedPrice && (
+                            <span className="text-muted-foreground">R${item.plannedPrice.toFixed(0)}</span>
                           )}
-                        </span>
-                        <span className={cn("flex-1 truncate", item.isBought && "text-muted-foreground line-through")}>
-                          {item.name}
-                        </span>
-                        {item.plannedPrice && (
-                          <span className="text-muted-foreground">R${item.plannedPrice.toFixed(0)}</span>
-                        )}
-                      </div>
-                    ))
+                        </div>
+                      )
+                    })
                   )}
                 </div>
               </div>

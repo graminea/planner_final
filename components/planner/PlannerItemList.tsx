@@ -62,7 +62,7 @@ function PriceDialogDesktop({
   }, [])
 
   const handleConfirm = () => {
-    const numPrice = parseFloat(price)
+    const numPrice = parseFloat(price.replace(",", "."))
     if (!isNaN(numPrice) && numPrice >= 0) {
       onConfirm(numPrice)
     }
@@ -155,7 +155,7 @@ function PriceDialogMobile({
   const [price, setPrice] = useState(defaultPrice.toFixed(2))
 
   const handleConfirm = () => {
-    const numPrice = parseFloat(price)
+    const numPrice = parseFloat(price.replace(",", "."))
     if (!isNaN(numPrice) && numPrice >= 0) {
       onConfirm(numPrice)
     }
@@ -513,7 +513,7 @@ export function PlannerItemList({ items, categories, filters, sort }: PlannerIte
                           autoFocus={isEditingPrice}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
-                              const value = parseFloat((e.target as HTMLInputElement).value)
+                              const value = parseFloat((e.target as HTMLInputElement).value.replace(",", "."))
                               if (!isNaN(value)) handleUpdateBoughtPrice(item.id, value)
                             }
                             if (e.key === "Escape") setEditingPriceItemId(null)
@@ -525,7 +525,7 @@ export function PlannerItemList({ items, categories, filters, sort }: PlannerIte
                           onClick={(e) => {
                             const input = (e.target as HTMLElement).parentElement?.querySelector("input")
                             if (input) {
-                              const value = parseFloat(input.value)
+                              const value = parseFloat(input.value.replace(",", "."))
                               if (!isNaN(value)) handleUpdateBoughtPrice(item.id, value)
                             }
                           }}

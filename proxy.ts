@@ -1,5 +1,5 @@
 /**
- * Route Protection Middleware (Next.js 16+)
+ * Route Protection Proxy (Next.js 16+)
  * 
  * Runs on the edge to protect routes by verifying JWT session tokens.
  * Does NOT use Prisma (which isn't edge-compatible).
@@ -15,7 +15,7 @@ const publicRoutes = ['/', '/login', '/register']
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/login', '/register']
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Check if route is public

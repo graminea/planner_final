@@ -4,16 +4,192 @@
  * CategoryList - Expandable category sections with purple theme
  */
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronRight, Plus, Trash2, FolderOpen, Package } from "lucide-react"
+import { ChevronRight, Plus, Trash2, FolderOpen, Package, DollarSign, X } from "lucide-react"
 import type { CategoryWithItems } from "@/lib/types"
 import { createCategory, deleteCategory } from "@/app/actions/categories"
 import { toggleItemBought } from "@/app/actions/items-new"
+import { useIsDesktop } from "@/lib/hooks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { cn } from "@/lib/utils"
+
+/** Normalize Brazilian comma decimal to dot before parsing */
+function parsePrice(value: string): number {
+  return parseFloat(value.replace(",", "."))
+}
+
+// ─── Compact Price Dialog (Desktop) ────────────────────────────
+type BuyingItem = CategoryWithItems["items"][0]
+
+function CategoryPriceDialogDesktop({
+  item,
+  onConfirm,
+  onCancel,
+}: {
+  item: BuyingItem
+  onConfirm: (price: number) => void
+  onCancel: () => void
+}) {
+  const defaultPrice = item.plannedPrice || 0
+  const [price, setPrice] = useState(defaultPrice.toFixed(2))
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true))
+  }, [])
+
+  const handleConfirm = () => {
+    const numPrice = parsePrice(price)
+    if (!isNaN(numPrice) && numPrice >= 0) {
+      onConfirm(numPrice)
+    }
+  }
+
+  const handleCancel = () => {
+    setVisible(false)
+    setTimeout(onCancel, 200)
+  }
+
+  return (
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200",
+        visible ? "bg-black/50" : "bg-black/0",
+      )}
+      onClick={handleCancel}
+    >
+      <Card
+        className={cn(
+          "w-full max-w-sm transition-all duration-200",
+          visible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4",
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Quanto você pagou?
+            </h3>
+            <Button variant="ghost" size="icon" onClick={handleCancel}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-4">
+            <span className="font-medium">{item.name}</span>
+          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="catBoughtPrice">Preço pago (R$)</Label>
+            <Input
+              id="catBoughtPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00"
+              className="text-lg"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleConfirm()
+                if (e.key === "Escape") handleCancel()
+              }}
+            />
+            {item.plannedPrice && (
+              <p className="text-xs text-muted-foreground">
+                Preço planejado: R${item.plannedPrice.toFixed(2)}
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <Button variant="outline" className="flex-1" onClick={handleCancel}>
+              Cancelar
+            </Button>
+            <Button className="flex-1" onClick={handleConfirm}>
+              Confirmar Compra
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ─── Compact Price Dialog (Mobile - vaul Drawer) ───────────────
+function CategoryPriceDialogMobile({
+  item,
+  onConfirm,
+  onCancel,
+}: {
+  item: BuyingItem
+  onConfirm: (price: number) => void
+  onCancel: () => void
+}) {
+  const defaultPrice = item.plannedPrice || 0
+  const [price, setPrice] = useState(defaultPrice.toFixed(2))
+
+  const handleConfirm = () => {
+    const numPrice = parsePrice(price)
+    if (!isNaN(numPrice) && numPrice >= 0) {
+      onConfirm(numPrice)
+    }
+  }
+
+  return (
+    <Drawer open onOpenChange={(open) => { if (!open) onCancel() }}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5" />
+            Quanto você pagou?
+          </DrawerTitle>
+        </DrawerHeader>
+        <div className="px-6 pb-8 pb-safe space-y-4">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium">{item.name}</span>
+          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="catBoughtPriceMobile">Preço pago (R$)</Label>
+            <Input
+              id="catBoughtPriceMobile"
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00"
+              className="text-lg h-12"
+              autoFocus
+            />
+            {item.plannedPrice && (
+              <p className="text-xs text-muted-foreground">
+                Preço planejado: R${item.plannedPrice.toFixed(2)}
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button className="flex-1" onClick={handleConfirm}>
+              Confirmar Compra
+            </Button>
+          </div>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
 
 interface CategoryListProps {
   categories: CategoryWithItems[]
@@ -23,6 +199,7 @@ interface CategoryListProps {
 
 export function CategoryList({ categories, onSelectCategory, selectedCategoryId }: CategoryListProps) {
   const router = useRouter()
+  const isDesktop = useIsDesktop()
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [showAddForm, setShowAddForm] = useState(false)
@@ -32,6 +209,9 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
 
   // Optimistic state for toggled items: itemId -> optimistic isBought value
   const [optimisticBought, setOptimisticBought] = useState<Map<string, boolean>>(new Map())
+
+  // Price dialog state
+  const [buyingItem, setBuyingItem] = useState<BuyingItem | null>(null)
 
   const toggleExpanded = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -67,27 +247,50 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
     router.refresh()
   }
 
-  const handleToggleBought = useCallback((itemId: string, currentIsBought: boolean) => {
-    // Optimistic update — flip immediately
-    setOptimisticBought((prev) => new Map(prev).set(itemId, !currentIsBought))
+  const handleToggleBought = useCallback((item: BuyingItem, currentIsBought: boolean) => {
+    if (currentIsBought) {
+      // Unmarking as bought — optimistic, no dialog needed
+      setOptimisticBought((prev) => new Map(prev).set(item.id, false))
 
-    toggleItemBought(itemId).then((result) => {
-      if (!result.success) {
-        // Rollback on failure
+      toggleItemBought(item.id).then((result) => {
         setOptimisticBought((prev) => {
           const next = new Map(prev)
-          next.delete(itemId)
+          next.delete(item.id)
           return next
         })
-      } else {
-        // Clear optimistic state — server data will arrive via refresh
-        setOptimisticBought((prev) => {
-          const next = new Map(prev)
-          next.delete(itemId)
-          return next
-        })
+        if (!result.success) return // rollback handled by refresh
         router.refresh()
-      }
+      }).catch(() => {
+        setOptimisticBought((prev) => {
+          const next = new Map(prev)
+          next.delete(item.id)
+          return next
+        })
+      })
+    } else {
+      // Marking as bought — show price dialog
+      setBuyingItem(item)
+    }
+  }, [router])
+
+  const handleConfirmBuy = useCallback((price: number) => {
+    if (!buyingItem) return
+
+    const itemId = buyingItem.id
+
+    // Optimistic update
+    setOptimisticBought((prev) => new Map(prev).set(itemId, true))
+    setBuyingItem(null)
+
+    // Sync with DB
+    toggleItemBought(itemId, price).then((result) => {
+      setOptimisticBought((prev) => {
+        const next = new Map(prev)
+        next.delete(itemId)
+        return next
+      })
+      if (!result.success) return
+      router.refresh()
     }).catch(() => {
       setOptimisticBought((prev) => {
         const next = new Map(prev)
@@ -95,7 +298,7 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
         return next
       })
     })
-  }, [router])
+  }, [buyingItem, router])
 
   // Calculate totals (respecting optimistic state)
   const getIsBought = (item: { id: string; isBought: boolean }) =>
@@ -105,6 +308,7 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
   const totalBought = categories.reduce((sum, cat) => sum + cat.items.filter((i) => getIsBought(i)).length, 0)
 
   return (
+    <>
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
@@ -248,7 +452,7 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
                         >
                           <button
                             type="button"
-                            onClick={() => handleToggleBought(item.id, isBought)}
+                            onClick={() => handleToggleBought(item, isBought)}
                             className={cn(
                               "w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors cursor-pointer",
                               isBought
@@ -291,5 +495,23 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
         </button>
       </CardContent>
     </Card>
+
+    {/* Price dialog when checking an item */}
+    {buyingItem && (
+      isDesktop ? (
+        <CategoryPriceDialogDesktop
+          item={buyingItem!}
+          onConfirm={handleConfirmBuy}
+          onCancel={() => setBuyingItem(null)}
+        />
+      ) : (
+        <CategoryPriceDialogMobile
+          item={buyingItem!}
+          onConfirm={handleConfirmBuy}
+          onCancel={() => setBuyingItem(null)}
+        />
+      )
+    )}
+    </>
   )
 }

@@ -454,14 +454,14 @@ export function CategoryList({ categories, onSelectCategory, selectedCategoryId 
                             type="button"
                             onClick={() => handleToggleBought(item, isBought)}
                             className={cn(
-                              "w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors cursor-pointer",
+                              "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors cursor-pointer",
                               isBought
                                 ? "bg-primary border-primary"
                                 : "border-muted-foreground hover:border-primary",
                             )}
                           >
                             {isBought && (
-                              <svg className="w-2 h-2 text-primary-foreground" fill="currentColor" viewBox="0 0 12 12">
+                              <svg className="w-2.5 h-2.5 text-primary-foreground" fill="currentColor" viewBox="0 0 12 12">
                                 <path d="M10 3L4.5 8.5 2 6" stroke="currentColor" strokeWidth="2" fill="none" />
                               </svg>
                             )}
